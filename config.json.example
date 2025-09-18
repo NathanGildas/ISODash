@@ -1,0 +1,4 @@
+{
+  "openProjectUrl": "https://your-openproject-instance.com",
+  "_comment": "Copy this file to config.json and update the URL to your OpenProject instance"
+}

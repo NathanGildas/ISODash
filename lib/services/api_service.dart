@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,27 +8,60 @@ class ApiService {
   static const String baseUrl = '/api/v3';
   String? _apiKey;
   String? _instanceUrl;
+  bool _useProxy = false;
+  String? _proxyUrl;
 
   // Initialisation - charge les credentials sauvegardés
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _apiKey = prefs.getString('api_key');
     _instanceUrl = prefs.getString('instance_url');
+    _useProxy = prefs.getBool('use_proxy') ?? false;
+    _proxyUrl = prefs.getString('proxy_url');
   }
 
   // Sauvegarde les credentials
-  Future<void> setCredentials(String instanceUrl, String apiKey) async {
+  Future<void> setCredentials(
+    String instanceUrl,
+    String apiKey, {
+    bool useProxy = false,
+    String? proxyUrl,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Utilise le proxy au lieu de l'URL directe
-    String proxyUrl = 'http://localhost:8080';
+    // Normalise l'URL instance (ajoute https:// si manquant, supprime les slashs finaux)
+    String normalizedInstance = instanceUrl.trim();
+    if (!normalizedInstance.startsWith('http://') &&
+        !normalizedInstance.startsWith('https://')) {
+      normalizedInstance = 'https://$normalizedInstance';
+    }
+    normalizedInstance = normalizedInstance.replaceAll(RegExp(r'/+$'), '');
 
-    await prefs.setString('instance_url', proxyUrl);
+    // Normalise l'URL proxy si fournie (par défaut http://)
+    String? normalizedProxy = proxyUrl?.trim();
+    if (normalizedProxy != null && normalizedProxy.isNotEmpty) {
+      if (!normalizedProxy.startsWith('http://') &&
+          !normalizedProxy.startsWith('https://')) {
+        // Les proxies de dev sont souvent en http
+        normalizedProxy = 'http://$normalizedProxy';
+      }
+      normalizedProxy = normalizedProxy.replaceAll(RegExp(r'/+$'), '');
+    }
+
+    await prefs.setString('instance_url', normalizedInstance);
     await prefs.setString('api_key', apiKey);
+    await prefs.setBool('use_proxy', useProxy);
+    if (useProxy && normalizedProxy != null && normalizedProxy.isNotEmpty) {
+      await prefs.setString('proxy_url', normalizedProxy);
+    } else {
+      await prefs.remove('proxy_url');
+    }
 
     // Met à jour les variables internes
-    _instanceUrl = proxyUrl;
+    _instanceUrl = normalizedInstance;
     _apiKey = apiKey;
+    _useProxy = useProxy;
+    _proxyUrl = normalizedProxy;
   }
 
   // Vérifie si on a des credentials
@@ -43,9 +77,43 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('api_key');
     await prefs.remove('instance_url');
+    await prefs.remove('use_proxy');
+    await prefs.remove('proxy_url');
 
     _apiKey = null;
     _instanceUrl = null;
+    _useProxy = false;
+    _proxyUrl = null;
+  }
+
+  // 🎯 Smart proxy detection pour déploiement
+  bool _shouldUseProxy() {
+    // Development: Utilise le proxy si configuré
+    if (_useProxy && _proxyUrl != null && _proxyUrl!.isNotEmpty) {
+      // Si l'URL contient localhost/127.0.0.1/192.168.x.x/172.x.x.x -> Mode dev
+      if (_proxyUrl!.contains('localhost') || 
+          _proxyUrl!.contains('127.0.0.1') ||
+          _proxyUrl!.contains('192.168.') ||
+          _proxyUrl!.contains('172.')) {
+        print('📍 Using development proxy: $_proxyUrl');
+        return true;
+      }
+    }
+    
+    // Production: Mobile apps n'ont pas besoin de proxy (pas de CORS)
+    if (!kIsWeb) {
+      print('📱 Mobile app: Direct API access (no CORS issues)');
+      return false;
+    }
+    
+    // Web en production: Utilise proxy seulement si vraiment nécessaire
+    if (kIsWeb && _useProxy && _proxyUrl != null) {
+      print('🌐 Web app: Using configured proxy: $_proxyUrl');
+      return true;
+    }
+    
+    print('🚀 Production mode: Direct API access');
+    return false;
   }
 
   // Méthode privée pour faire les requêtes GET
@@ -54,10 +122,11 @@ class ApiService {
       throw Exception('Credentials manquantes');
     }
 
-    // Nettoie l'URL pour éviter les doubles slashes
-    String cleanInstanceUrl = _instanceUrl!.replaceAll(RegExp(r'/+$'), '');
+    // Détermine la stratégie d'URL selon le contexte
+    final selectedBase = _shouldUseProxy() ? _proxyUrl! : _instanceUrl!;
+    String cleanBase = selectedBase.replaceAll(RegExp(r'/+$'), '');
     String cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
-    final url = '$cleanInstanceUrl$baseUrl$cleanEndpoint';
+    final url = '$cleanBase$baseUrl$cleanEndpoint';
 
     // Authentification Basic
     final authString = 'apikey:$_apiKey';
@@ -89,12 +158,6 @@ class ApiService {
     } on FormatException catch (e) {
       print('❌ Format error: $e');
       throw Exception('URL malformée: $e');
-    } on HttpException catch (e) {
-      print('❌ HTTP error: $e');
-      throw Exception('Erreur HTTP: $e');
-    } on SocketException catch (e) {
-      print('❌ Network error: $e');
-      throw Exception('Erreur réseau: Vérifiez votre connexion et l\'URL');
     } catch (e) {
       print('❌ Unexpected error: $e');
       print('❌ Error type: ${e.runtimeType}');

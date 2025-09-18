@@ -47,3 +47,7 @@ app.*.map.json
 # Claude Code specific files
 .claude/
 CLAUDE.md
+
+# Sensitive configuration files
+lib/proxy_server.dart
+config.json

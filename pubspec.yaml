@@ -1,5 +1,5 @@
-name: project_monitor
-description: "A new Flutter project."
+name: isodash
+description: "ISODash - Automated ISO KPI calculation system replacing manual Excel workflows with OpenProject API integration."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

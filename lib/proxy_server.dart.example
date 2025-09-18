@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 
 void main() async {
+  // Load target URL from environment variable or config file
+  final targetUrl = Platform.environment['OPENPROJECT_URL'] ?? 
+                   await _loadTargetUrlFromConfig() ??
+                   'https://your-openproject-instance.com';
+  
   final server = await HttpServer.bind('localhost', 8080);
   print('🚀 Proxy CORS server running on http://localhost:8080');
-  print('🔗 Proxying to https://forge2.ebindoo.com');
+  print('🔗 Proxying to $targetUrl');
 
   await for (HttpRequest request in server) {
     // Headers CORS pour autoriser toutes les requêtes
@@ -27,15 +31,15 @@ void main() async {
     }
 
     // Proxy vers OpenProject
-    final targetUrl = 'https://forge2.ebindoo.com${request.uri}';
-    print('📡 Proxying: ${request.method} $targetUrl');
+    final fullTargetUrl = '$targetUrl${request.uri}';
+    print('📡 Proxying: ${request.method} $fullTargetUrl');
 
     final client = HttpClient();
 
     try {
       final proxyRequest = await client.openUrl(
         request.method,
-        Uri.parse(targetUrl),
+        Uri.parse(fullTargetUrl),
       );
 
       // Copie tous les headers de la requête originale
@@ -81,4 +85,19 @@ void main() async {
 
     client.close();
   }
+}
+
+/// Load target URL from config.json file
+Future<String?> _loadTargetUrlFromConfig() async {
+  try {
+    final configFile = File('config.json');
+    if (await configFile.exists()) {
+      final configContent = await configFile.readAsString();
+      final config = jsonDecode(configContent);
+      return config['openProjectUrl'] as String?;
+    }
+  } catch (e) {
+    print('⚠️  Could not read config.json: $e');
+  }
+  return null;
 }

@@ -1,11 +1,11 @@
 {
-    "name": "project_monitor",
-    "short_name": "project_monitor",
+    "name": "ISODash",
+    "short_name": "ISODash",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "ISODash - Automated ISO KPI calculation system replacing manual Excel workflows.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

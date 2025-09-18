@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 
@@ -17,6 +18,10 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   //Données collectées dans les étapes
   String? _openProjectUrl;
   String? _apiKey;
+
+  // Paramètres proxy (utile pour le Web/CORS)
+  bool _useProxy = kIsWeb; // Par défaut activé sur Web
+  String? _proxyUrl = kIsWeb ? 'http://localhost:8080' : 'http://172.17.71.19:8080';
 
   //état de l'interface
   bool _isLoading = false;
@@ -51,9 +56,11 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   }
 
   Widget _buildStepByStepInstructions() {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -90,7 +97,11 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
               'Cliquez sur "Generate" pour créer une nouvelle clé',
               Icons.add_circle,
             ),
-            _buildInstructionStep(6, 'Copiez la clé générée', Icons.copy),
+            _buildInstructionStep(
+              6, 
+              'Copiez la clé générée', 
+              Icons.copy,
+            ),
           ],
         ),
       ),
@@ -98,14 +109,19 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   }
 
   Widget _buildInstructionStep(int number, String instruction, IconData icon) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final circleSize = isSmallScreen ? 20.0 : 24.0;
+    final iconSize = isSmallScreen ? 16.0 : 20.0;
+    final verticalPadding = isSmallScreen ? 6.0 : 8.0;
+    
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.symmetric(vertical: verticalPadding),
       child: Row(
         children: [
           // Numéro dans un cercle
           Container(
-            width: 24,
-            height: 24,
+            width: circleSize,
+            height: circleSize,
             decoration: BoxDecoration(
               color: Theme.of(context).primaryColor,
               shape: BoxShape.circle,
@@ -115,17 +131,17 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
                 '$number',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: isSmallScreen ? 10 : 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: isSmallScreen ? 8 : 12),
 
           // Icône
-          Icon(icon, size: 20, color: Theme.of(context).primaryColor),
-          SizedBox(width: 12),
+          Icon(icon, size: iconSize, color: Theme.of(context).primaryColor),
+          SizedBox(width: isSmallScreen ? 8 : 12),
 
           // Texte instruction
           Expanded(
@@ -140,11 +156,15 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   }
 
   Widget _buildUrlStep() {
-    return Padding(
-      padding: EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Aligne à gauche
-        children: [
+    return SingleChildScrollView(
+      child: Padding(
+        padding: MediaQuery.of(context).size.width < 600 
+            ? EdgeInsets.all(16.0) 
+            : EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Titre et description
           Text(
             'Étape 1: URL de votre OpenProject',
@@ -157,33 +177,66 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
           ),
           SizedBox(height: 32),
 
-          // Champ de saisie
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                _openProjectUrl = value.trim();
-              });
-            },
-            decoration: InputDecoration(
-              labelText: 'URL OpenProject',
-              hintText: 'https://votre-instance.openproject.com',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.link),
+            // Champ de saisie
+            TextField(
+              onChanged: (value) {
+                setState(() {
+                  _openProjectUrl = value.trim();
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'URL OpenProject',
+                hintText: 'https://votre-instance.openproject.com',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
+              ),
             ),
-          ),
 
-          Spacer(), // Pousse le bouton vers le bas
-          // Bouton suivant
-          SizedBox(
-            width: double.infinity, // Pleine largeur
-            child: ElevatedButton(
-              onPressed: _openProjectUrl?.isNotEmpty == true
-                  ? _goToNextStep
-                  : null,
-              child: Text('Suivant'),
+            SizedBox(height: 16),
+
+            // Proxy toggle
+            SwitchListTile.adaptive(
+              title: Text('Utiliser un proxy (recommandé pour Web/CORS)'),
+              subtitle: Text('Activez pour utiliser un proxy comme http://localhost:8080'),
+              value: _useProxy,
+              onChanged: (value) {
+                setState(() {
+                  _useProxy = value;
+                });
+              },
             ),
-          ),
-        ],
+
+            if (_useProxy) ...[
+              SizedBox(height: 12),
+              TextField(
+                controller: TextEditingController(text: _proxyUrl),
+                onChanged: (value) {
+                  setState(() {
+                    _proxyUrl = value.trim();
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: 'URL du proxy',
+                  hintText: kIsWeb ? 'http://localhost:8080' : 'http://172.17.71.19:8080',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.swap_horiz),
+                ),
+              ),
+            ],
+
+            SizedBox(height: 32),
+            // Bouton suivant
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _openProjectUrl?.isNotEmpty == true
+                    ? _goToNextStep
+                    : null,
+                child: Text('Suivant'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -205,18 +258,59 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
     }
 
     try {
+      // Ensure URL has protocol
+      String cleanUrl = _openProjectUrl!;
+      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+        cleanUrl = 'https://$cleanUrl';
+      }
+      
       // URL directe vers la page des tokens
-      final url = Uri.parse('$_openProjectUrl/my/access_token');
+      final url = Uri.parse('$cleanUrl/my/access_token');
 
-      if (await canLaunchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication, // Ouvre dans nouvel onglet
-        );
-      } else {
-        _showErrorSnackBar('Impossible d\'ouvrir le lien');
+      print('🔗 Trying to open: $url');
+
+      // Essayer plusieurs méthodes de lancement
+      bool launched = false;
+      
+      try {
+        // Méthode 1: Mode externe par défaut
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+          launched = true;
+          print('✅ URL launched with externalApplication');
+        }
+      } catch (e) {
+        print('❌ Failed with externalApplication: $e');
+      }
+      
+      if (!launched) {
+        try {
+          // Méthode 2: Mode plateforme par défaut
+          await launchUrl(url, mode: LaunchMode.platformDefault);
+          launched = true;
+          print('✅ URL launched with platformDefault');
+        } catch (e) {
+          print('❌ Failed with platformDefault: $e');
+        }
+      }
+      
+      if (!launched) {
+        try {
+          // Méthode 3: Mode ancien (deprecated mais parfois plus compatible)
+          await launchUrl(url);
+          launched = true;
+          print('✅ URL launched with default mode');
+        } catch (e) {
+          print('❌ Failed with default mode: $e');
+        }
+      }
+      
+      if (!launched) {
+        print('❌ All launch methods failed for URL: $url');
+        _showErrorSnackBar('Aucune méthode ne peut ouvrir le lien. Vérifiez qu\'un navigateur est installé sur votre téléphone.');
       }
     } catch (e) {
+      print('❌ Exception launching URL: $e');
       _showErrorSnackBar('Erreur: $e');
     }
   }
@@ -238,11 +332,14 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   }
 
   Widget _buildGuideStep() {
-    return Padding(
-      padding: EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
+    return SingleChildScrollView(
+      child: Padding(
+        padding: isSmallScreen ? EdgeInsets.all(16.0) : EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Titre
           Text(
             'Étape 2: Ouvrir OpenProject',
@@ -282,57 +379,60 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
           SizedBox(height: 24),
 
-          // Bouton pour ouvrir OpenProject
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _openProjectInNewTab,
-              icon: Icon(Icons.launch),
-              label: Text('Ouvrir OpenProject'),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
+            // Bouton pour ouvrir OpenProject
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _openProjectInNewTab,
+                icon: Icon(Icons.launch),
+                label: Text('Ouvrir OpenProject'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ),
-          ),
 
           SizedBox(height: 24),
 
           // Instructions étape par étape
           _buildStepByStepInstructions(),
 
-          Spacer(),
+            SizedBox(height: 32),
 
-          // Boutons navigation
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _goToPreviousStep,
-                  child: Text('Précédent'),
+            // Boutons navigation
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _goToPreviousStep,
+                    child: Text('Précédent'),
+                  ),
                 ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _goToNextStep,
-                  child: Text('J\'ai généré ma clé'),
+                SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _goToNextStep,
+                    child: Text('J\'ai généré ma clé'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildApiKeyStep() {
-    return Padding(
-      padding: EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
+    return SingleChildScrollView(
+      child: Padding(
+        padding: isSmallScreen ? EdgeInsets.all(16.0) : EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Titre
           Text(
             'Étape 3: Saisir votre clé API',
@@ -384,28 +484,27 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
           SizedBox(height: 24),
 
-          // Champ de saisie API Key
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                _apiKey = value.trim();
-                _errorMessage =
-                    null; // Efface l'erreur quand l'utilisateur tape
-              });
-            },
-            decoration: InputDecoration(
-              labelText: 'Clé API OpenProject',
-              hintText: 'Collez votre clé API ici...',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.vpn_key),
-              suffixIcon: _apiKey?.isNotEmpty == true
-                  ? Icon(Icons.check_circle, color: Colors.green)
-                  : null,
-              errorText: _errorMessage, // Affiche l'erreur s'il y en a une
+            // Champ de saisie API Key
+            TextField(
+              onChanged: (value) {
+                setState(() {
+                  _apiKey = value.trim();
+                  _errorMessage = null;
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'Clé API OpenProject',
+                hintText: 'Collez votre clé API ici...',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.vpn_key),
+                suffixIcon: _apiKey?.isNotEmpty == true
+                    ? Icon(Icons.check_circle, color: Colors.green)
+                    : null,
+                errorText: _errorMessage,
+              ),
+              maxLines: 2,
+              obscureText: false,
             ),
-            maxLines: 2, // Permet d'afficher sur 2 lignes si la clé est longue
-            obscureText: false, // On peut voir la clé (vs mot de passe)
-          ),
 
           SizedBox(height: 16),
 
@@ -430,27 +529,28 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
             SizedBox(height: 16),
           ],
 
-          Spacer(),
+            SizedBox(height: 32),
 
-          // Navigation
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _goToPreviousStep,
-                  child: Text('Précédent'),
+            // Navigation
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _goToPreviousStep,
+                    child: Text('Précédent'),
+                  ),
                 ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _canProceedToNextStep() ? _goToNextStep : null,
-                  child: Text('Finaliser'),
+                SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _canProceedToNextStep() ? _goToNextStep : null,
+                    child: Text('Finaliser'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -463,42 +563,28 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
       return;
     }
 
+    if (_useProxy && (_proxyUrl == null || _proxyUrl!.isEmpty)) {
+      setState(() {
+        _errorMessage = 'Veuillez saisir l\'URL du proxy';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Configure les credentials temporairement pour le test
-      await _apiService.setCredentials(_openProjectUrl!, _apiKey!);
+      // Configure les credentials pour le test
+      await _apiService.setCredentials(
+        _openProjectUrl!,
+        _apiKey!,
+        useProxy: _useProxy,
+        proxyUrl: _proxyUrl,
+      );
 
-      // Test de connexion
-      final isValid = await _apiService.testConnection();
-
-      if (isValid) {
-        // Success!
-        setState(() {
-          _isLoading = false;
-        });
-
-        _showSuccessSnackBar('✅ Connexion réussie !');
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Clé API invalide ou permissions insuffisantes';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Erreur de connexion: ${e.toString()}';
-      });
-    }
-
-    try {
-      await _apiService.setCredentials(_openProjectUrl!, _apiKey!);
-
-      // Test étendu
+      // Tests étendus
       print('🧪 Test 1: Connexion basique...');
       final isValid = await _apiService.testConnection();
 
@@ -513,12 +599,22 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
         final projects = await _apiService.getProjects();
         print('📋 ${projects.length} projets trouvés');
 
+        setState(() {
+          _isLoading = false;
+        });
+        
         _showSuccessSnackBar('✅ Tous les tests réussis !');
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Clé API invalide ou permissions insuffisantes';
+        });
       }
     } catch (e) {
       print('❌ Erreur test: $e');
       setState(() {
-        _errorMessage = 'Erreur: $e';
+        _isLoading = false;
+        _errorMessage = 'Erreur de connexion: ${e.toString()}';
       });
     }
   }
@@ -544,47 +640,50 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   }
 
   Widget _buildTestStep() {
-    return Padding(
-      padding: EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          // Animation de succès
-          Container(
-            width: 120,
-            height: 120,
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    
+    return SingleChildScrollView(
+      child: Padding(
+        padding: isSmallScreen ? EdgeInsets.all(16.0) : EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            // Animation de succès
+            Container(
+              width: isSmallScreen ? 80 : 120,
+              height: isSmallScreen ? 80 : 120,
             decoration: BoxDecoration(
               color: Colors.green.shade100,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.check_circle_outline,
-              size: 64,
-              color: Colors.green,
-            ),
+              child: Icon(
+                Icons.check_circle_outline,
+                size: isSmallScreen ? 48 : 64,
+                color: Colors.green,
+              ),
           ),
 
-          SizedBox(height: 24),
+            SizedBox(height: isSmallScreen ? 16 : 24),
 
-          Text(
-            'Configuration terminée !',
+            Text(
+              'Configuration terminée !',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               color: Colors.green.shade700,
               fontWeight: FontWeight.bold,
             ),
           ),
 
-          SizedBox(height: 16),
+            SizedBox(height: isSmallScreen ? 12 : 16),
 
-          Text(
-            'Votre application est maintenant connectée à OpenProject.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
+            Text(
+              'Votre application est maintenant connectée à OpenProject.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
 
-          SizedBox(height: 32),
+            SizedBox(height: isSmallScreen ? 24 : 32),
 
-          // Informations de connexion
-          Card(
+            // Informations de connexion
+            Card(
             child: Padding(
               padding: EdgeInsets.all(16.0),
               child: Column(
@@ -597,21 +696,19 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
             ),
           ),
 
-          Spacer(),
+            SizedBox(height: 32),
 
-          // Bouton pour continuer vers l'app
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _goToDashboard,
-              icon: Icon(Icons.dashboard),
-              label: Text('Accéder au tableau de bord'),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
+            // Bouton pour continuer vers l'app
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _goToDashboard,
+                icon: Icon(Icons.dashboard),
+                label: Text('Accéder au tableau de bord'),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
