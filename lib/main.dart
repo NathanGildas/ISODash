@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/guided_auth_screen.dart';
-import 'screens/dashboard_screen.dart';
+// import 'screens/dashboard_screen.dart'; // Commenté temporairement
+import 'screens/kpi_dashboard_screen.dart';
+import 'screens/api_explorer_screen.dart';
 import 'providers/project_provider.dart';
 import 'providers/kpi_provider.dart';
-import 'services/api_service.dart';
 
 void main() {
   runApp(MyApp());
@@ -13,35 +14,39 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    // Create a single ApiService instance to share between providers
-    final apiService = ApiService();
-    
     return MultiProvider(
       providers: [
-        // Project Provider - manages project data and authentication
         ChangeNotifierProvider(create: (_) => ProjectProvider()),
-        
-        // KPI Provider - manages ISO objectives calculations
-        ChangeNotifierProvider(create: (_) => KPIProvider(apiService)),
+        ChangeNotifierProvider(create: (_) => KPIProvider()),
       ],
       child: MaterialApp(
-        title: 'ISODash',
+        title: 'ISODash - Monitoring ISO',
         theme: ThemeData(
-          primarySwatch: Colors.orange,
+          primarySwatch: Colors.blue,
           useMaterial3: true,
-          // Responsive text scaling
-          textTheme: const TextTheme().apply(
-            fontSizeFactor: 1.0,
+          appBarTheme: AppBarTheme(
+            elevation: 2,
+            centerTitle: true,
+            backgroundColor: Colors.blue.shade700,
+            foregroundColor: Colors.white,
           ),
-          // Ensure proper touch targets on mobile
-          materialTapTargetSize: MaterialTapTargetSize.padded,
+          cardTheme: CardThemeData(
+            elevation: 3,
+            margin: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         ),
-        home: const GuidedAuthScreen(),
-        //Routes pour la navigation (si besoin)
-        routes: {'/dashboard': (context) => const DashboardScreen()},
+        home: GuidedAuthScreen(),
+        routes: {
+          // '/dashboard': (context) => DashboardScreen(), // Commenté temporairement
+          '/kpi': (context) => KPIDashboardScreen(),
+          '/explorer': (context) => APIExplorerScreen(),
+        },
+        initialRoute: '/',
       ),
     );
   }

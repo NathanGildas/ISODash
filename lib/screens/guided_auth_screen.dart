@@ -728,7 +728,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   }
 
   void _goToDashboard() {
-    // Navigation vers l'écran principal (à implémenter plus tard)
-    Navigator.of(context).pushReplacementNamed('/dashboard');
+    // Navigation vers l'écran principal
+    Navigator.of(context).pushReplacementNamed('/kpi');
   }
 }

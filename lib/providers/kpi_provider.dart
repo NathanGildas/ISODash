@@ -1,316 +1,234 @@
-// KPI Provider - State management for KPI data
-// This class manages the state of our 3 ISO objectives and provides them to the UI
-// Uses the Provider pattern that Flutter developers are familiar with
-
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import '../services/real_kpi_calculator_service.dart'; // 🆕 Nouveau service
 import '../models/kpi_indicator.dart';
-import '../models/performance_cause.dart';
-import '../services/kpi_calculator_service.dart';
-import '../services/api_service.dart';
+import '../models/sprint_metrics.dart';
 
-class KPIProvider extends ChangeNotifier {
-  // The service that does our calculations
-  late KPICalculatorService _kpiService;
-  
-  // Current state of our 3 KPI indicators
-  List<KPIIndicator> _kpiIndicators = [];
-  
-  // List of causes for sprints that didn't meet targets
-  List<PerformanceCause> _performanceCauses = [];
-  
-  // Loading states
-  bool _isLoadingKPIs = false;
-  bool _isLoadingCauses = false;
-  
-  // Error states
+class KPIProvider with ChangeNotifier {
+  final RealKPICalculatorService _calculatorService = RealKPICalculatorService(); // 🆕
+
+  // État des KPI
+  List<KPIIndicator> _kpis = [];
+  // List<SprintMetrics> _sprintsNeedingCauses = []; // Commenté temporairement
+  bool _isLoading = false;
   String? _errorMessage;
+  DateTime _selectedPeriod = DateTime.now();
 
-  // Constructor - initialize the KPI service
-  KPIProvider(ApiService apiService) {
-    _kpiService = KPICalculatorService(apiService);
-    print('🎯 KPIProvider initialized');
-  }
-
-  // =============================================================================
-  // GETTERS - Allow the UI to access our data
-  // =============================================================================
-
-  /// Get the list of current KPI indicators
-  List<KPIIndicator> get kpiIndicators => List.unmodifiable(_kpiIndicators);
-  
-  /// Get the list of performance causes
-  List<PerformanceCause> get performanceCauses => List.unmodifiable(_performanceCauses);
-  
-  /// Check if we're currently loading KPI data
-  bool get isLoadingKPIs => _isLoadingKPIs;
-  
-  /// Check if we're currently loading causes data
-  bool get isLoadingCauses => _isLoadingCauses;
-  
-  /// Check if we have any loading operation in progress
-  bool get isLoading => _isLoadingKPIs || _isLoadingCauses;
-  
-  /// Get the current error message (null if no error)
+  // Getters
+  List<KPIIndicator> get kpis => _kpis;
+  // List<SprintMetrics> get sprintsNeedingCauses => _sprintsNeedingCauses; // Commenté
+  bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  
-  /// Check if we have KPI data loaded
-  bool get hasKPIData => _kpiIndicators.isNotEmpty;
+  DateTime get selectedPeriod => _selectedPeriod;
+  bool get hasKPIs => _kpis.isNotEmpty;
 
-  // =============================================================================
-  // SPECIFIC KPI GETTERS - Easy access to individual objectives
-  // =============================================================================
+  // Getters pour chaque type de KPI
+  KPIIndicator? get monthlyKPI => _kpis
+      .where((kpi) => kpi.type == KPIType.monthly)
+      .isNotEmpty
+      ? _kpis.where((kpi) => kpi.type == KPIType.monthly).first
+      : null;
 
-  /// Get Objective 1 (Quarterly Rate - Target: 70%)
-  KPIIndicator? get objective1 {
+  KPIIndicator? get quarterlyKPI => _kpis
+      .where((kpi) => kpi.type == KPIType.quarterly)
+      .isNotEmpty
+      ? _kpis.where((kpi) => kpi.type == KPIType.quarterly).first
+      : null;
+
+  KPIIndicator? get qualityKPI => _kpis
+      .where((kpi) => kpi.type == KPIType.quality)
+      .isNotEmpty
+      ? _kpis.where((kpi) => kpi.type == KPIType.quality).first
+      : null;
+
+  /// Charge les KPI pour la période sélectionnée
+  Future<void> loadKPIs({bool forceRefresh = false}) async {
+    _setLoading(true);
+    _clearError();
+
     try {
-      return _kpiIndicators.firstWhere(
-        (kpi) => kpi.name.contains('Objectif 1'),
+      print('🔄 Chargement KPI pour ${_selectedPeriod.toString()}');
+
+      // Calcule tous les KPI
+      final kpis = await _calculatorService.calculateAllKPIs(
+        forDate: _selectedPeriod,
+        forceRefresh: forceRefresh,
       );
+
+      _kpis = kpis;
+
+      // Récupère les sprints nécessitant des causes
+      // _sprintsNeedingCauses = _calculatorService.getSprintsNeedingCauseDocumentation(); // Commenté
+
+      print('✅ ${_kpis.length} KPI chargés');
+      // print('✅ ${_kpis.length} KPI chargés, ${_sprintsNeedingCauses.length} sprints nécessitent des causes');
+      _setLoading(false);
     } catch (e) {
-      return null; // Not found
+      print('❌ Erreur loadKPIs: $e');
+      _setError('Impossible de charger les KPI: $e');
+      _setLoading(false);
     }
   }
 
-  /// Get Objective 2 (Monthly Rate - Target: 80%)
-  KPIIndicator? get objective2 {
-    try {
-      return _kpiIndicators.firstWhere(
-        (kpi) => kpi.name.contains('Objectif 2'),
-      );
-    } catch (e) {
-      return null; // Not found
-    }
-  }
-
-  /// Get Objective 3 (Quality Rate - Target: 80%)
-  KPIIndicator? get objective3 {
-    try {
-      return _kpiIndicators.firstWhere(
-        (kpi) => kpi.name.contains('Objectif 3'),
-      );
-    } catch (e) {
-      return null; // Not found
-    }
-  }
-
-  // =============================================================================
-  // DATA LOADING METHODS - Fetch and calculate KPI data
-  // =============================================================================
-
-  /// Load all KPI data from OpenProject
-  /// This is the main method the UI will call to refresh data
-  Future<void> loadAllKPIs() async {
-    print('📊 Starting to load all KPI data...');
-    
-    // Set loading state
-    _isLoadingKPIs = true;
-    _errorMessage = null;
-    notifyListeners(); // Tell UI to update
-
-    try {
-      // CRITICAL: Ensure ApiService has credentials before calculations
-      await _kpiService.ensureCredentialsLoaded();
-      
-      // DEBUG: Inspect API structure first to understand data format
-      await _kpiService.debugAPIStructure();
-      
-      // Calculate all 3 objectives
-      final kpiResults = await _kpiService.calculateAllObjectives();
-      
-      // Update our state
-      _kpiIndicators = kpiResults;
-      
-      // Log results for debugging
-      for (var kpi in _kpiIndicators) {
-        print('✅ ${kpi.name}: ${kpi.formattedValue} (Target: ${kpi.formattedTarget})');
-      }
-      
-      // Check for causes that need to be documented
-      await _checkForRequiredCauses();
-      
-      print('🎯 All KPIs loaded successfully!');
-      
-    } catch (e) {
-      // Handle errors gracefully
-      _errorMessage = 'Erreur lors du calcul des KPIs: $e';
-      print('❌ Error loading KPIs: $e');
-    } finally {
-      // Always clear loading state
-      _isLoadingKPIs = false;
-      notifyListeners(); // Tell UI to update
-    }
-  }
-
-  /// Load a specific KPI by type
-  Future<void> loadSpecificKPI(String objectiveName) async {
-    print('📊 Loading specific KPI: $objectiveName');
-    
-    _isLoadingKPIs = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      // CRITICAL: Ensure ApiService has credentials before calculations
-      await _kpiService.ensureCredentialsLoaded();
-      KPIIndicator? newKPI;
-      
-      // Determine which calculation to run
-      if (objectiveName.contains('Objectif 1')) {
-        final quarter = _kpiService.getCurrentQuarter();
-        newKPI = await _kpiService.calculateObjective1Quarterly(quarter);
-      } else if (objectiveName.contains('Objectif 2')) {
-        final month = _kpiService.getCurrentMonth();
-        newKPI = await _kpiService.calculateObjective2Monthly(month);
-      } else if (objectiveName.contains('Objectif 3')) {
-        final quarter = _kpiService.getCurrentQuarter();
-        newKPI = await _kpiService.calculateObjective3Quality(quarter);
-      }
-
-      if (newKPI != null) {
-        // Update the specific KPI in our list
-        final index = _kpiIndicators.indexWhere(
-          (kpi) => kpi.name.contains(objectiveName),
-        );
-        
-        if (index >= 0) {
-          _kpiIndicators[index] = newKPI;
-        } else {
-          _kpiIndicators.add(newKPI);
-        }
-        
-        print('✅ Updated $objectiveName: ${newKPI.formattedValue}');
-      }
-
-    } catch (e) {
-      _errorMessage = 'Erreur lors du calcul de $objectiveName: $e';
-      print('❌ Error loading specific KPI: $e');
-    } finally {
-      _isLoadingKPIs = false;
+  /// Change la période sélectionnée et recharge les KPI
+  Future<void> changePeriod(DateTime newPeriod) async {
+    if (_selectedPeriod != newPeriod) {
+      _selectedPeriod = newPeriod;
       notifyListeners();
+      await loadKPIs();
     }
   }
 
-  // =============================================================================
-  // CAUSE MANAGEMENT METHODS - Handle performance causes
-  // =============================================================================
+  /// Ajoute une cause à un sprint - DÉSACTIVÉ TEMPORAIREMENT
+  Future<void> addCauseToSprint({
+    required int projectId,
+    required int sprintId,
+    required CauseCategory category,
+    required String description,
+    String? solution,
+  }) async {
+    // Fonctionnalité temporairement désactivée
+    print('⚠️ Gestion des causes temporairement désactivée');
+    /*
+    try {
+      final cause = PerformanceCause(
+        id: '${projectId}_${sprintId}_${DateTime.now().millisecondsSinceEpoch}',
+        projectId: projectId,
+        sprintId: sprintId,
+        category: category,
+        description: description,
+        createdAt: DateTime.now(),
+        solution: solution,
+      );
 
-  /// Check for sprints that need cause documentation
-  /// This automatically creates cause entries for sprints below 80%
-  Future<void> _checkForRequiredCauses() async {
-    print('🔍 Checking for required cause documentation...');
-    
-    // Only check if we have Objective 2 data (monthly rate)
-    final obj2 = objective2;
-    if (obj2 == null) return;
+      await _calculatorService.addCauseToSprint(
+        projectId: projectId,
+        sprintId: sprintId,
+        cause: cause,
+      );
 
-    // If monthly rate is below 80%, we need to document causes
-    if (obj2.currentValue < 80.0) {
-      print('⚠️  Monthly rate ${obj2.formattedValue} is below target - causes needed');
-      
-      // TODO: In a future version, we could automatically create
-      // PerformanceCause entries for each failed sprint
-      // For now, we'll just log that causes are needed
-    } else {
-      print('✅ Monthly rate ${obj2.formattedValue} meets target - no causes needed');
-    }
-  }
+      // Met à jour la liste des sprints nécessitant des causes
+      _sprintsNeedingCauses = _calculatorService.getSprintsNeedingCauseDocumentation();
 
-  /// Add a new performance cause
-  Future<void> addPerformanceCause(PerformanceCause cause) async {
-    print('📝 Adding performance cause: ${cause.displayTitle}');
-    
-    _performanceCauses.add(cause);
-    
-    // TODO: In a future version, save to local storage
-    
-    notifyListeners();
-  }
-
-  /// Update an existing performance cause
-  Future<void> updatePerformanceCause(String causeId, PerformanceCause updatedCause) async {
-    final index = _performanceCauses.indexWhere((cause) => cause.id == causeId);
-    
-    if (index >= 0) {
-      _performanceCauses[index] = updatedCause;
-      print('✅ Updated cause: ${updatedCause.displayTitle}');
-      
-      // TODO: In a future version, save to local storage
-      
       notifyListeners();
+      print('✅ Cause ajoutée au sprint $sprintId');
+    } catch (e) {
+      print('❌ Erreur ajout cause: $e');
+      _setError('Impossible d\'ajouter la cause: $e');
     }
+    */
   }
 
-  /// Remove a performance cause
-  Future<void> removePerformanceCause(String causeId) async {
-    _performanceCauses.removeWhere((cause) => cause.id == causeId);
-    print('🗑️ Removed cause with ID: $causeId');
-    
-    // TODO: In a future version, remove from local storage
-    
-    notifyListeners();
+  /// Rafraîchit toutes les données
+  Future<void> refresh() async {
+    await loadKPIs(forceRefresh: true);
   }
 
-  // =============================================================================
-  // UTILITY METHODS - Helper methods for the UI
-  // =============================================================================
-
-  /// Get a summary of KPI performance
-  Map<String, int> getKPIPerformanceSummary() {
-    int metTarget = 0;
-    int belowTarget = 0;
-    int closeToTarget = 0;
-
-    for (var kpi in _kpiIndicators) {
-      if (kpi.isTargetMet) {
-        metTarget++;
-      } else if (kpi.currentValue >= (kpi.targetValue * 0.9)) {
-        closeToTarget++;
-      } else {
-        belowTarget++;
-      }
-    }
-
-    return {
-      'metTarget': metTarget,
-      'closeToTarget': closeToTarget,
-      'belowTarget': belowTarget,
-      'total': _kpiIndicators.length,
-    };
+  /// Navigation entre périodes
+  void goToPreviousMonth() {
+    final newDate = DateTime(_selectedPeriod.year, _selectedPeriod.month - 1, 1);
+    changePeriod(newDate);
   }
 
-  /// Get the overall health status
-  String get overallHealthStatus {
-    final summary = getKPIPerformanceSummary();
-    final total = summary['total'] ?? 0;
-    
-    if (total == 0) return 'Aucune donnée';
-    
-    final metTarget = summary['metTarget'] ?? 0;
-    
-    if (metTarget == total) {
-      return 'Excellent'; // All targets met
-    } else if (metTarget >= (total * 0.67)) {
-      return 'Bon'; // 2/3 or more targets met
+  void goToNextMonth() {
+    final newDate = DateTime(_selectedPeriod.year, _selectedPeriod.month + 1, 1);
+    changePeriod(newDate);
+  }
+
+  void goToPreviousQuarter() {
+    final currentQuarter = ((_selectedPeriod.month - 1) ~/ 3) + 1;
+    final previousQuarter = currentQuarter - 1;
+
+    int newYear = _selectedPeriod.year;
+    int newMonth;
+
+    if (previousQuarter < 1) {
+      newYear--;
+      newMonth = 10; // Q4 de l'année précédente
     } else {
-      return 'À améliorer'; // Less than 2/3 targets met
+      newMonth = (previousQuarter - 1) * 3 + 1;
     }
+
+    changePeriod(DateTime(newYear, newMonth, 1));
   }
 
-  /// Clear all data (useful for logout or reset)
-  void clearAllData() {
-    _kpiIndicators.clear();
-    _performanceCauses.clear();
-    _errorMessage = null;
-    _isLoadingKPIs = false;
-    _isLoadingCauses = false;
-    
-    print('🧹 Cleared all KPI data');
+  void goToNextQuarter() {
+    final currentQuarter = ((_selectedPeriod.month - 1) ~/ 3) + 1;
+    final nextQuarter = currentQuarter + 1;
+
+    int newYear = _selectedPeriod.year;
+    int newMonth;
+
+    if (nextQuarter > 4) {
+      newYear++;
+      newMonth = 1; // Q1 de l'année suivante
+    } else {
+      newMonth = (nextQuarter - 1) * 3 + 1;
+    }
+
+    changePeriod(DateTime(newYear, newMonth, 1));
+  }
+
+  // Getters pour l'affichage des périodes
+  String get currentMonthDisplay {
+    final months = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ];
+    return '${months[_selectedPeriod.month - 1]} ${_selectedPeriod.year}';
+  }
+
+  String get currentQuarterDisplay {
+    final quarter = ((_selectedPeriod.month - 1) ~/ 3) + 1;
+    return 'Q$quarter ${_selectedPeriod.year}';
+  }
+
+  // Statistiques globales
+  int get totalNonCompliantSprints {
+    return 0; // _sprintsNeedingCauses.length; // Commenté
+  }
+
+  int get totalDocumentedCauses {
+    return 0; // Commenté
+    // return _sprintsNeedingCauses
+    //     .where((sprint) => sprint.causes?.isNotEmpty == true)
+    //     .length;
+  }
+
+  double get overallComplianceRate {
+    if (!hasKPIs) return 0.0;
+
+    final compliantKPIs = _kpis.where((kpi) => kpi.isCompliant).length;
+    return (compliantKPIs / _kpis.length) * 100;
+  }
+
+  // Méthodes privées pour gérer l'état
+  void _setLoading(bool loading) {
+    _isLoading = loading;
     notifyListeners();
   }
 
-  /// Refresh all data (convenience method)
-  Future<void> refreshAll() async {
-    print('🔄 Refreshing all KPI data...');
-    await loadAllKPIs();
+  void _setError(String error) {
+    _errorMessage = error;
+    notifyListeners();
+  }
+
+  void _clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Efface toutes les données (pour les tests)
+  Future<void> clearAllData() async {
+    await _calculatorService.clearHistoricalData();
+    _kpis.clear();
+    // _sprintsNeedingCauses.clear(); // Commenté
+    _clearError();
+    notifyListeners();
+    print('🗑️ Toutes les données effacées');
+  }
+
+  /// Informations de debug
+  Future<Map<String, dynamic>> getDebugInfo() async {
+    return await _calculatorService.getDebugInfo();
   }
 }

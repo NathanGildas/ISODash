@@ -1,7 +1,7 @@
 // Dashboard Screen - Main screen showing ISO KPI objectives
 // This screen displays the 3 ISO objectives with visual indicators
 // Written with comprehensive comments for junior developer understanding
-
+/*
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/project_provider.dart';
@@ -760,4 +760,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     return 'Analyser les causes profondes et mettre en place un plan d\'amélioration.';
   }
-}
+} */

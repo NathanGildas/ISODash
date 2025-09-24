@@ -1,107 +1,110 @@
-// KPI Indicator Model - Represents one ISO objective measurement
-// This is a simple data class to store information about our 3 ISO objectives
-
 class KPIIndicator {
-  // The name of the indicator (ex: "Objectif 1 - Taux Trimestriel")
+  final String id;
   final String name;
-  
-  // The current calculated value (ex: 75.5 for 75.5%)
   final double currentValue;
-  
-  // The target we want to reach (ex: 70.0 for 70%)
   final double targetValue;
-  
-  // The period this KPI covers (ex: "T3 2025", "Septembre 2025")
-  final String period;
-  
-  // The unit for display (ex: "%", "points")
-  final String unit;
-  
-  // When this KPI was last calculated
-  final DateTime lastCalculated;
+  final String unit; // "%" pour pourcentage
+  final DateTime period;
+  final KPIType type;
+  final bool isCompliant;
 
-  // Constructor - this is how we create a new KPIIndicator
-  const KPIIndicator({
+  KPIIndicator({
+    required this.id,
     required this.name,
     required this.currentValue,
     required this.targetValue,
+    required this.unit,
     required this.period,
-    this.unit = '%', // Default unit is percentage
-    required this.lastCalculated,
-  });
+    required this.type,
+  }) : isCompliant = currentValue >= targetValue;
 
-  // Helper method - check if this KPI meets its target
-  bool get isTargetMet {
-    return currentValue >= targetValue;
+  // Getters utiles
+  double get completionRate => (currentValue / targetValue * 100).clamp(0, 200);
+  String get displayValue => '${currentValue.toStringAsFixed(1)}$unit';
+  String get displayTarget => '${targetValue.toStringAsFixed(0)}$unit';
+
+  // Status visuel
+  KPIStatus get status {
+    if (currentValue >= targetValue) return KPIStatus.success;
+    if (currentValue >= targetValue * 0.8) return KPIStatus.warning;
+    return KPIStatus.danger;
   }
 
-  // Helper method - calculate how far we are from target (positive = above target)
-  double get targetDifference {
-    return currentValue - targetValue;
-  }
-
-  // Helper method - get a color based on performance
-  // Green = above target, Orange = close to target, Red = below target
-  String get performanceColor {
-    if (isTargetMet) {
-      return 'green'; // Above target
-    } else if (currentValue >= (targetValue * 0.9)) {
-      return 'orange'; // Within 10% of target
-    } else {
-      return 'red'; // More than 10% below target
-    }
-  }
-
-  // Helper method - format the value for display (ex: "75.5%")
-  String get formattedValue {
-    return '${currentValue.toStringAsFixed(1)}$unit';
-  }
-
-  // Helper method - format the target for display (ex: "≥70.0%")
-  String get formattedTarget {
-    return '≥${targetValue.toStringAsFixed(1)}$unit';
-  }
-
-  // Convert to JSON for storage
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'currentValue': currentValue,
       'targetValue': targetValue,
-      'period': period,
       'unit': unit,
-      'lastCalculated': lastCalculated.toIso8601String(),
+      'period': period.toIso8601String(),
+      'type': type.toString(),
     };
   }
 
-  // Create from JSON when loading from storage
   factory KPIIndicator.fromJson(Map<String, dynamic> json) {
     return KPIIndicator(
+      id: json['id'],
       name: json['name'],
       currentValue: json['currentValue'].toDouble(),
       targetValue: json['targetValue'].toDouble(),
-      period: json['period'],
-      unit: json['unit'] ?? '%',
-      lastCalculated: DateTime.parse(json['lastCalculated']),
+      unit: json['unit'],
+      period: DateTime.parse(json['period']),
+      type: KPIType.values.firstWhere(
+            (e) => e.toString() == json['type'],
+      ),
     );
   }
 
-  // Create a copy with some values changed (useful for updates)
-  KPIIndicator copyWith({
-    String? name,
-    double? currentValue,
-    double? targetValue,
-    String? period,
-    String? unit,
-    DateTime? lastCalculated,
-  }) {
-    return KPIIndicator(
-      name: name ?? this.name,
-      currentValue: currentValue ?? this.currentValue,
-      targetValue: targetValue ?? this.targetValue,
-      period: period ?? this.period,
-      unit: unit ?? this.unit,
-      lastCalculated: lastCalculated ?? this.lastCalculated,
-    );
+  @override
+  String toString() {
+    return 'KPIIndicator(name: $name, value: $displayValue, target: $displayTarget, compliant: $isCompliant)';
+  }
+}
+
+enum KPIType {
+  monthly,     // Objectif 2 - Taux mensuel
+  quarterly,   // Objectif 1 - Taux trimestriel
+  quality,     // Objectif 3 - Qualité
+}
+
+enum KPIStatus {
+  success,   // >= 100% de l'objectif
+  warning,   // >= 80% de l'objectif
+  danger,    // < 80% de l'objectif
+}
+
+extension KPITypeExtension on KPIType {
+  String get displayName {
+    switch (this) {
+      case KPIType.monthly:
+        return 'Taux Mensuel';
+      case KPIType.quarterly:
+        return 'Taux Trimestriel';
+      case KPIType.quality:
+        return 'Qualité';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case KPIType.monthly:
+        return 'Moyenne mensuelle des progressions de sprints (Objectif: 80%)';
+      case KPIType.quarterly:
+        return 'Moyenne trimestrielle des taux mensuels (Objectif: 70%)';
+      case KPIType.quality:
+        return 'Ratio tâches testées / tâches totales (Objectif: 80%)';
+    }
+  }
+
+  double get defaultTarget {
+    switch (this) {
+      case KPIType.monthly:
+        return 80.0;
+      case KPIType.quarterly:
+        return 70.0;
+      case KPIType.quality:
+        return 80.0;
+    }
   }
 }

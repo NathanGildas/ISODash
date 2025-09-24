@@ -315,4 +315,59 @@ class ApiService {
       throw Exception('Impossible de récupérer les time entries: $e');
     }
   }
+
+  /// Méthode générique GET pour les appels API personnalisés
+  /// Méthode générique GET pour les appels API personnalisés
+  Future<Map<String, dynamic>> get(String endpoint) async {
+    if (_apiKey == null || _instanceUrl == null) {
+      throw Exception('Credentials manquantes');
+    }
+
+    try {
+      // Utilise la même logique que _get() pour la cohérence
+      final selectedBase = _shouldUseProxy() ? _proxyUrl! : _instanceUrl!;
+      String cleanBase = selectedBase.replaceAll(RegExp(r'/+$'), '');
+      String cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
+      final url = '$cleanBase$baseUrl$cleanEndpoint';
+
+      // Authentification Basic (même logique que _get)
+      final authString = 'apikey:$_apiKey';
+      final auth = base64Encode(utf8.encode(authString));
+
+      final headers = {
+        'Authorization': 'Basic $auth',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      print('🔗 GET générique: $url');
+
+      final response = await http.get(Uri.parse(url), headers: headers);
+      print('📡 Response status: ${response.statusCode}');
+
+      if (response.statusCode == 401) {
+        throw Exception('API Key invalide');
+      } else if (response.statusCode == 403) {
+        throw Exception('Permissions insuffisantes');
+      } else if (response.statusCode != 200) {
+        throw Exception('Erreur HTTP ${response.statusCode}: ${response.body}');
+      }
+
+      final data = jsonDecode(response.body);
+      return data;
+
+    } catch (e) {
+      print('❌ Erreur API GET générique $endpoint: $e');
+      throw Exception('Erreur API: $e');
+    }
+  }
+
+// 🆕 NOUVEAU : Getter pour exposer l'API key (nécessaire pour le KPI service)
+  String get apiKey => _apiKey ?? '';
+
+// 🆕 NOUVEAU : Getter pour exposer l'instance URL
+  String get instanceUrl => _instanceUrl ?? '';
+
+// 🆕 NOUVEAU : Getter pour savoir si on utilise le proxy
+  bool get isUsingProxy => _shouldUseProxy();
 }
