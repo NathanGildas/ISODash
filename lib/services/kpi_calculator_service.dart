@@ -782,4 +782,14 @@ class KPICalculatorService {
     ];
     return months[date.month];
   }
+
+  /// Vérifie si les credentials API sont configurés
+  Future<bool> hasValidCredentials() async {
+    try {
+      await _apiService.init();
+      return _apiService.hasCredentials;
+    } catch (e) {
+      return false;
+    }
+  }
 }

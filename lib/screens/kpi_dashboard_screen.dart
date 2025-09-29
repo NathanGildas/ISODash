@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../providers/kpi_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/kpi_indicator.dart';
+import '../widgets/kpi_parallax_list.dart';
 
 class KPIDashboardScreen extends StatefulWidget {
   const KPIDashboardScreen({super.key});
@@ -26,7 +27,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false, // Empêche la sortie automatique
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _showExitConfirmationDialog(context);
       },
@@ -170,15 +171,6 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                     height: MediaQuery.of(context).size.width < 600 ? 16 : 24,
                   ),
 
-                  // Graphique placeholder
-                  _buildTrendChart(kpiProvider),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.width < 600 ? 16 : 24,
-                  ),
-
-                  // Actions rapides
-                  _buildQuickActions(context),
-
                   // Bottom safe area for mobile
                   SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
                 ],
@@ -219,13 +211,13 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
             Text('Chargement en cours... Veuillez patienter'),
           ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.9),
+        backgroundColor: Theme.of(
+          context,
+        ).colorScheme.primary.withValues(alpha: 0.9),
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
         margin: EdgeInsets.fromLTRB(16, 0, 16, 24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -370,7 +362,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -570,20 +562,23 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Indicateurs ISO',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Indicateurs ISO',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
         SizedBox(height: 12),
 
-        ...kpis
-            .map(
-              (kpi) => Container(
-                margin: EdgeInsets.only(bottom: 12),
-                child: _buildKPICard(kpi),
-              ),
-            )
-            .toList(),
+        // New parallax KPI cards
+        KPIParallaxList(
+          kpis: kpis,
+          onKPISelected: (kpi) {
+            // Handle KPI selection if needed
+            print('Selected KPI: ${kpi.name}');
+          },
+        ),
       ],
     );
   }
@@ -626,7 +621,9 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
         Text(
           kpi.type.description,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         SizedBox(height: 16),
@@ -656,7 +653,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                           value: (100 - kpi.currentValue).clamp(0, 100),
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withOpacity(0.2),
+                          ).colorScheme.outline.withValues(alpha: 0.2),
                           showTitle: false,
                           radius: 12,
                         ),
@@ -696,7 +693,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -712,7 +709,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
           value: (kpi.currentValue / 100).clamp(0.0, 1.0),
           backgroundColor: Theme.of(
             context,
-          ).colorScheme.outline.withOpacity(0.2),
+          ).colorScheme.outline.withValues(alpha: 0.2),
           valueColor: AlwaysStoppedAnimation(_getKPIColor(kpi.status)),
         ),
       ],
@@ -744,7 +741,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                       value: (100 - kpi.currentValue).clamp(0, 100),
                       color: Theme.of(
                         context,
-                      ).colorScheme.outline.withOpacity(0.2),
+                      ).colorScheme.outline.withValues(alpha: 0.2),
                       showTitle: false,
                       radius: 15,
                     ),
@@ -791,7 +788,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               SizedBox(height: 8),
@@ -810,7 +807,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -820,7 +817,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                 value: (kpi.currentValue / 100).clamp(0.0, 1.0),
                 backgroundColor: Theme.of(
                   context,
-                ).colorScheme.outline.withOpacity(0.2),
+                ).colorScheme.outline.withValues(alpha: 0.2),
                 valueColor: AlwaysStoppedAnimation(_getKPIColor(kpi.status)),
               ),
             ],
@@ -869,123 +866,5 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
       case KPIStatus.danger:
         return Colors.red;
     }
-  }
-
-  Widget _buildTrendChart(KPIProvider provider) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Évolution des Indicateurs',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.timeline, size: 48, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text(
-                      'Graphique de tendance',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    Text(
-                      'À implémenter dans Sprint 3',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Actions rapides',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/explorer'),
-                  icon: Icon(Icons.api),
-                  label: Text('Explorer APIs'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.purple,
-                    side: BorderSide(color: Colors.purple),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _exportReport(context),
-                  icon: Icon(Icons.file_download),
-                  label: Text('Exporter PDF'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _exportDocx(context),
-                  icon: Icon(Icons.description),
-                  label: Text('Exporter DOCX'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _showSettings(context),
-                  icon: Icon(Icons.settings),
-                  label: Text('Paramètres'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Actions des boutons
-  void _exportReport(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Export PDF - À implémenter dans Sprint 3'),
-        backgroundColor: Colors.blue,
-      ),
-    );
-  }
-
-  void _exportDocx(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Export DOCX - À implémenter dans Sprint 3'),
-        backgroundColor: Colors.blue,
-      ),
-    );
-  }
-
-  void _showSettings(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Paramètres - À implémenter'),
-        backgroundColor: Colors.grey,
-      ),
-    );
   }
 }

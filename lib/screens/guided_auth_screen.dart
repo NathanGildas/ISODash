@@ -23,7 +23,9 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
   // Paramètres proxy (utile pour le Web/CORS)
   bool _useProxy = kIsWeb; // Par défaut activé sur Web
-  String? _proxyUrl = kIsWeb ? 'http://localhost:8080' : 'http://172.17.71.19:8080';
+  String? _proxyUrl = kIsWeb
+      ? 'http://localhost:8080'
+      : 'http://172.17.71.19:8080';
 
   //état de l'interface
   bool _isLoading = false;
@@ -43,138 +45,143 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
         _handleBackButton(context);
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: LayoutBuilder(
-          builder: (context, constraints) {
-            // Check available width for responsive title
-            final screenWidth = MediaQuery.of(context).size.width;
-            final isSmallScreen = screenWidth < 400;
+        appBar: AppBar(
+          title: LayoutBuilder(
+            builder: (context, constraints) {
+              // Check available width for responsive title
+              final screenWidth = MediaQuery.of(context).size.width;
+              final isSmallScreen = screenWidth < 400;
 
-            return Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.settings_applications,
-                    color: theme.colorScheme.secondary,
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: isSmallScreen ? 8 : 12),
-                Expanded(
-                  child: Text(
-                    isSmallScreen ? 'Configuration' : 'Configuration OpenProject',
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).appBarTheme.titleTextStyle,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) {
-              return PopupMenuButton<ThemeMode>(
-                icon: Icon(
-                  isDark ? Icons.dark_mode : Icons.light_mode,
-                  color: Colors.white,
-                ),
-                onSelected: (ThemeMode mode) {
-                  themeProvider.setThemeMode(mode);
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: ThemeMode.light,
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.light_mode,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        SizedBox(width: 8),
-                        Text('Clair'),
-                      ],
+              return Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.settings_applications,
+                      color: theme.colorScheme.secondary,
+                      size: 20,
                     ),
                   ),
-                  PopupMenuItem(
-                    value: ThemeMode.dark,
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.dark_mode,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        SizedBox(width: 8),
-                        Text('Sombre'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: ThemeMode.system,
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.auto_mode,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        SizedBox(width: 8),
-                        Text('Système'),
-                      ],
+                  SizedBox(width: isSmallScreen ? 8 : 12),
+                  Expanded(
+                    child: Text(
+                      isSmallScreen
+                          ? 'Configuration'
+                          : 'Configuration OpenProject',
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).appBarTheme.titleTextStyle,
                     ),
                   ),
                 ],
               );
             },
           ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(12.0),
-          child: Column(
-            children: [
-              // Indicateur de progression moderne
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(4, (index) {
-                    bool isActive = index <= _currentStep;
-                    bool isCurrent = index == _currentStep;
-
-                    return Expanded(
-                      child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 2),
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: isActive
-                            ? theme.colorScheme.secondary
-                            : theme.colorScheme.secondary.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(2),
-                          boxShadow: isCurrent ? [
-                            BoxShadow(
-                              color: theme.colorScheme.secondary.withOpacity(0.4),
-                              blurRadius: 4,
-                              offset: Offset(0, 1),
-                            )
-                          ] : null,
-                        ),
+          actions: [
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, child) {
+                return PopupMenuButton<ThemeMode>(
+                  icon: Icon(
+                    isDark ? Icons.dark_mode : Icons.light_mode,
+                    color: Colors.white,
+                  ),
+                  onSelected: (ThemeMode mode) {
+                    themeProvider.setThemeMode(mode);
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: ThemeMode.light,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.light_mode,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Clair'),
+                        ],
                       ),
-                    );
-                  }),
+                    ),
+                    PopupMenuItem(
+                      value: ThemeMode.dark,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.dark_mode,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Sombre'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: ThemeMode.system,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.auto_mode,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Système'),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(12.0),
+            child: Column(
+              children: [
+                // Indicateur de progression moderne
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(4, (index) {
+                      bool isActive = index <= _currentStep;
+                      bool isCurrent = index == _currentStep;
+
+                      return Expanded(
+                        child: Container(
+                          margin: EdgeInsets.symmetric(horizontal: 2),
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? theme.colorScheme.secondary
+                                : theme.colorScheme.secondary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: isCurrent
+                                ? [
+                                    BoxShadow(
+                                      color: theme.colorScheme.secondary
+                                          .withOpacity(0.4),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
                 ),
-              ),
-              SizedBox(height: 8),
-            ],
+                SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
-      ),
         body: PageView(
           controller: _pageController,
           physics: NeverScrollableScrollPhysics(),
@@ -251,7 +258,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
   Widget _buildStepByStepInstructions() {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
@@ -291,11 +298,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
               'Cliquez sur "Generate" pour créer une nouvelle clé',
               Icons.add_circle,
             ),
-            _buildInstructionStep(
-              6, 
-              'Copiez la clé générée', 
-              Icons.copy,
-            ),
+            _buildInstructionStep(6, 'Copiez la clé générée', Icons.copy),
           ],
         ),
       ),
@@ -307,7 +310,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
     final circleSize = isSmallScreen ? 20.0 : 24.0;
     final iconSize = isSmallScreen ? 16.0 : 20.0;
     final verticalPadding = isSmallScreen ? 6.0 : 8.0;
-    
+
     return Padding(
       padding: EdgeInsets.symmetric(vertical: verticalPadding),
       child: Row(
@@ -352,24 +355,24 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   Widget _buildUrlStep() {
     return SingleChildScrollView(
       child: Padding(
-        padding: MediaQuery.of(context).size.width < 600 
-            ? EdgeInsets.all(16.0) 
+        padding: MediaQuery.of(context).size.width < 600
+            ? EdgeInsets.all(16.0)
             : EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-          // Titre et description
-          Text(
-            'Étape 1: URL de votre OpenProject',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Entrez l\'URL de votre instance OpenProject pour commencer la configuration.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          SizedBox(height: 32),
+            // Titre et description
+            Text(
+              'Étape 1: URL de votre OpenProject',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Entrez l\'URL de votre instance OpenProject pour commencer la configuration.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            SizedBox(height: 32),
 
             // Champ de saisie
             TextField(
@@ -391,7 +394,9 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
             // Proxy toggle
             SwitchListTile.adaptive(
               title: Text('Utiliser un proxy (recommandé pour Web/CORS)'),
-              subtitle: Text('Activez pour utiliser un proxy comme http://localhost:8080'),
+              subtitle: Text(
+                'Activez pour utiliser un proxy comme http://localhost:8080',
+              ),
               value: _useProxy,
               onChanged: (value) {
                 setState(() {
@@ -411,7 +416,9 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
                 },
                 decoration: InputDecoration(
                   labelText: 'URL du proxy',
-                  hintText: kIsWeb ? 'http://localhost:8080' : 'http://172.17.71.19:8080',
+                  hintText: kIsWeb
+                      ? 'http://localhost:8080'
+                      : 'http://172.17.71.19:8080',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.swap_horiz),
                 ),
@@ -457,7 +464,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
       if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
         cleanUrl = 'https://$cleanUrl';
       }
-      
+
       // URL directe vers la page des tokens
       final url = Uri.parse('$cleanUrl/my/access_token');
 
@@ -465,7 +472,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
       // Essayer plusieurs méthodes de lancement
       bool launched = false;
-      
+
       try {
         // Méthode 1: Mode externe par défaut
         if (await canLaunchUrl(url)) {
@@ -476,7 +483,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
       } catch (e) {
         print('❌ Failed with externalApplication: $e');
       }
-      
+
       if (!launched) {
         try {
           // Méthode 2: Mode plateforme par défaut
@@ -487,7 +494,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
           print('❌ Failed with platformDefault: $e');
         }
       }
-      
+
       if (!launched) {
         try {
           // Méthode 3: Mode ancien (deprecated mais parfois plus compatible)
@@ -498,10 +505,12 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
           print('❌ Failed with default mode: $e');
         }
       }
-      
+
       if (!launched) {
         print('❌ All launch methods failed for URL: $url');
-        _showErrorSnackBar('Aucune méthode ne peut ouvrir le lien. Vérifiez qu\'un navigateur est installé sur votre téléphone.');
+        _showErrorSnackBar(
+          'Aucune méthode ne peut ouvrir le lien. Vérifiez qu\'un navigateur est installé sur votre téléphone.',
+        );
       }
     } catch (e) {
       print('❌ Exception launching URL: $e');
@@ -528,18 +537,18 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   Widget _buildGuideStep() {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
     final screenHeight = MediaQuery.of(context).size.height;
-    final availableHeight = screenHeight - MediaQuery.of(context).padding.top - kToolbarHeight - 100;
+    final availableHeight =
+        screenHeight -
+        MediaQuery.of(context).padding.top -
+        kToolbarHeight -
+        100;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
-          padding: isSmallScreen
-              ? EdgeInsets.all(12.0)
-              : EdgeInsets.all(20.0),
+          padding: isSmallScreen ? EdgeInsets.all(12.0) : EdgeInsets.all(20.0),
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: availableHeight,
-            ),
+            constraints: BoxConstraints(minHeight: availableHeight),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -636,63 +645,63 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
   Widget _buildApiKeyStep() {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    
+
     return SingleChildScrollView(
       child: Padding(
         padding: isSmallScreen ? EdgeInsets.all(16.0) : EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Titre
-          Text(
-            'Étape 3: Saisir votre clé API',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          SizedBox(height: 16),
+            // Titre
+            Text(
+              'Étape 3: Saisir votre clé API',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            SizedBox(height: 16),
 
-          // Description
-          Text(
-            'Collez la clé API que vous venez de générer dans OpenProject.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          SizedBox(height: 24),
+            // Description
+            Text(
+              'Collez la clé API que vous venez de générer dans OpenProject.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            SizedBox(height: 24),
 
-          // Card avec exemple visuel
-          Card(
-            color: Colors.blue.shade50, // Couleur de fond légère
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 32),
-                  SizedBox(height: 12),
-                  Text(
-                    'La clé API ressemble à ceci :',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  SizedBox(height: 8),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+            // Card avec exemple visuel
+            Card(
+              color: Colors.blue.shade50, // Couleur de fond légère
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 32),
+                    SizedBox(height: 12),
+                    Text(
+                      'La clé API ressemble à ceci :',
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
-                    child: Text(
-                      'abcdef1234567890abcdef1234567890abcdef12',
-                      style: TextStyle(
-                        fontFamily: 'monospace', // Police à espacement fixe
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        'abcdef1234567890abcdef1234567890abcdef12',
+                        style: TextStyle(
+                          fontFamily: 'monospace', // Police à espacement fixe
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
 
-          SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Champ de saisie API Key
             TextField(
@@ -716,28 +725,28 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
               obscureText: false,
             ),
 
-          SizedBox(height: 16),
+            SizedBox(height: 16),
 
-          // Bouton test rapide de la clé
-          if (_apiKey?.isNotEmpty == true) ...[
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _isLoading ? null : _testApiKey,
-                icon: _isLoading
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(Icons.wifi_protected_setup),
-                label: Text(
-                  _isLoading ? 'Test en cours...' : 'Tester la connexion',
+            // Bouton test rapide de la clé
+            if (_apiKey?.isNotEmpty == true) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _testApiKey,
+                  icon: _isLoading
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(Icons.wifi_protected_setup),
+                  label: Text(
+                    _isLoading ? 'Test en cours...' : 'Tester la connexion',
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 16),
-          ],
+              SizedBox(height: 16),
+            ],
 
             SizedBox(height: 32),
 
@@ -812,7 +821,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
         setState(() {
           _isLoading = false;
         });
-        
+
         _showSuccessSnackBar('✅ Tous les tests réussis !');
       } else {
         setState(() {
@@ -851,7 +860,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
   Widget _buildTestStep() {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    
+
     return SingleChildScrollView(
       child: Padding(
         padding: isSmallScreen ? EdgeInsets.all(16.0) : EdgeInsets.all(24.0),
@@ -861,26 +870,26 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
             Container(
               width: isSmallScreen ? 80 : 120,
               height: isSmallScreen ? 80 : 120,
-            decoration: BoxDecoration(
-              color: Colors.green.shade100,
-              shape: BoxShape.circle,
-            ),
+              decoration: BoxDecoration(
+                color: Colors.green.shade100,
+                shape: BoxShape.circle,
+              ),
               child: Icon(
                 Icons.check_circle_outline,
                 size: isSmallScreen ? 48 : 64,
                 color: Colors.green,
               ),
-          ),
+            ),
 
             SizedBox(height: isSmallScreen ? 16 : 24),
 
             Text(
               'Configuration terminée !',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: Colors.green.shade700,
-              fontWeight: FontWeight.bold,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.green.shade700,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
 
             SizedBox(height: isSmallScreen ? 12 : 16),
 
@@ -894,17 +903,17 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
             // Informations de connexion
             Card(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  _buildInfoRow('Instance', _openProjectUrl ?? ''),
-                  Divider(),
-                  _buildInfoRow('Statut', 'Connecté ✅'),
-                ],
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildInfoRow('Instance', _openProjectUrl ?? ''),
+                    Divider(),
+                    _buildInfoRow('Statut', 'Connecté ✅'),
+                  ],
+                ),
               ),
             ),
-          ),
 
             SizedBox(height: 32),
 
@@ -938,7 +947,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   }
 
   void _goToDashboard() {
-    // Navigation vers l'écran principal
-    Navigator.of(context).pushReplacementNamed('/kpi');
+    // Navigation vers l'écran principal avec navigation fluide
+    Navigator.of(context).pushReplacementNamed('/main');
   }
 }

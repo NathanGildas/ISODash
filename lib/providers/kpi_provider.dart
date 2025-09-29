@@ -48,6 +48,14 @@ class KPIProvider with ChangeNotifier {
     try {
       print('🔄 Chargement KPI pour ${_selectedPeriod.toString()}');
 
+      // Vérification préalable des credentials
+      if (!await _calculatorService.hasValidCredentials()) {
+        print('⚠️ Pas de credentials configurés, arrêt du chargement KPI');
+        _setLoading(false);
+        _setError('Configuration requise: Veuillez configurer vos identifiants API via l\'écran de connexion');
+        return;
+      }
+
       // Calcule tous les KPI (l'initialisation se fait dans le service)
       final kpis = await _calculatorService.calculateAllKPIs(
         forDate: _selectedPeriod,

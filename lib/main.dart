@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/guided_auth_screen.dart';
-// import 'screens/dashboard_screen.dart'; // Commenté temporairement
 import 'widgets/data_diagnostic_widget.dart';
-import 'screens/kpi_dashboard_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'screens/api_explorer_screen.dart';
 import 'providers/project_provider.dart';
 import 'providers/kpi_provider.dart';
@@ -33,8 +32,7 @@ class MyApp extends StatelessWidget {
             themeMode: themeProvider.themeMode,
             home: GuidedAuthScreen(),
             routes: {
-              // '/dashboard': (context) => DashboardScreen(), // Commenté temporairement
-              '/kpi': (context) => KPIDashboardScreen(),
+              '/main': (context) => MainNavigationScreen(),
               '/explorer': (context) => APIExplorerScreen(),
               '/diagnostic': (context) => DataDiagnosticWidget(),
             },
