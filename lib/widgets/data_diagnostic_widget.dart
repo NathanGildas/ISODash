@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
@@ -42,8 +43,8 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Diagnostic des Données OpenProject'),
-        backgroundColor: Colors.green.shade700,
+        title: Text('Diagnostic Données OpenProject'),
+        backgroundColor: Color(0xFF1976D2),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -54,10 +55,7 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
             _buildProjectSelector(),
             SizedBox(height: 16),
             _buildAnalyzeButton(),
-            if (_error != null) ...[
-              SizedBox(height: 16),
-              _buildErrorCard(),
-            ],
+            if (_error != null) ...[SizedBox(height: 16), _buildErrorCard()],
             if (_diagnosticData != null) ...[
               SizedBox(height: 16),
               _buildDiagnosticResults(),
@@ -76,7 +74,7 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Sélectionner un projet pour diagnostic',
+              'Sélectionner un projet',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 12),
@@ -89,10 +87,14 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
                   labelText: 'Projet',
                   border: OutlineInputBorder(),
                 ),
+                isExpanded: true,
                 items: _projects.map((project) {
                   return DropdownMenuItem<int>(
                     value: project['id'],
-                    child: Text('${project['name']} (ID: ${project['id']})'),
+                    child: Text(
+                      '${project['name']} (ID: ${project['id']})',
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -113,9 +115,15 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
             ? _runDiagnostic
             : null,
         icon: _isLoading
-            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : Icon(Icons.analytics),
-        label: Text(_isLoading ? 'Analyse...' : 'Analyser la Structure des Données'),
+        label: Text(
+          _isLoading ? 'Analyse...' : 'Analyser la Structure des Données',
+        ),
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.symmetric(vertical: 12),
         ),
@@ -135,7 +143,13 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
               children: [
                 Icon(Icons.error, color: Colors.red),
                 SizedBox(width: 8),
-                Text('Erreur', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                Text(
+                  'Erreur',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             SizedBox(height: 8),
@@ -170,6 +184,7 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
 
         // Données brutes (collapsible)
         _buildRawDataCard(),
+        SizedBox(height: 100),
       ],
     );
   }
@@ -183,13 +198,28 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('📊 Résumé', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              '📊 Résumé',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 12),
-            _buildSummaryRow('Total Work Packages', '${summary['totalWorkPackages']}'),
-            _buildSummaryRow('Tâches avec pourcentage', '${summary['tasksWithPercentage']}'),
+            _buildSummaryRow(
+              'Total Work Packages',
+              '${summary['totalWorkPackages']}',
+            ),
+            _buildSummaryRow(
+              'Tâches avec pourcentage',
+              '${summary['tasksWithPercentage']}',
+            ),
             _buildSummaryRow('Types différents', '${summary['uniqueTypes']}'),
-            _buildSummaryRow('Statuts différents', '${summary['uniqueStatuses']}'),
-            _buildSummaryRow('Tâches potentiellement "feuilles"', '${summary['leafTasks']}'),
+            _buildSummaryRow(
+              'Statuts différents',
+              '${summary['uniqueStatuses']}',
+            ),
+            _buildSummaryRow(
+              'Tâches potentiellement "feuilles"',
+              '${summary['leafTasks']}',
+            ),
           ],
         ),
       ),
@@ -210,7 +240,8 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
   }
 
   Widget _buildWorkPackagesAnalysis() {
-    final analysis = _diagnosticData!['workPackageAnalysis'] as Map<String, dynamic>;
+    final analysis =
+        _diagnosticData!['workPackageAnalysis'] as Map<String, dynamic>;
 
     return Card(
       child: ExpansionTile(
@@ -221,25 +252,36 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Distribution des pourcentages:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Distribution des pourcentages:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: 8),
-                ...(analysis['percentageDistribution'] as Map<String, dynamic>).entries.map((entry) {
-                  return Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('${entry.key}%'),
-                        Text('${entry.value} tâches'),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                ...(analysis['percentageDistribution'] as Map<String, dynamic>)
+                    .entries
+                    .map((entry) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${entry.key}%'),
+                            Text('${entry.value} tâches'),
+                          ],
+                        ),
+                      );
+                    })
+                    .toList(),
 
                 SizedBox(height: 16),
-                Text('Exemples de tâches:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Exemples de tâches:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: 8),
-                ...(analysis['sampleTasks'] as List<dynamic>).map<Widget>((task) {
+                ...(analysis['sampleTasks'] as List<dynamic>).map<Widget>((
+                  task,
+                ) {
                   return Container(
                     margin: EdgeInsets.only(bottom: 8),
                     padding: EdgeInsets.all(8),
@@ -250,8 +292,13 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${task['subject']}', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Type: ${task['type']} | Status: ${task['status']} | ${task['percentageDone']}%'),
+                        Text(
+                          '${task['subject']}',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Type: ${task['type']} | Status: ${task['status']} | ${task['percentageDone']}%',
+                        ),
                       ],
                     ),
                   );
@@ -277,14 +324,21 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Types de Work Packages:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Types de Work Packages:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: types.map<Widget>((type) => Chip(
-                    label: Text('${type['name']} (${type['count']})'),
-                    backgroundColor: Colors.blue.shade100,
-                  )).toList(),
+                  children: types
+                      .map<Widget>(
+                        (type) => Chip(
+                          label: Text('${type['name']} (${type['count']})'),
+                          backgroundColor: Colors.blue.shade100,
+                        ),
+                      )
+                      .toList(),
                 ),
 
                 SizedBox(height: 16),
@@ -292,10 +346,14 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
                 SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: statuses.map<Widget>((status) => Chip(
-                    label: Text('${status['name']} (${status['count']})'),
-                    backgroundColor: Colors.green.shade100,
-                  )).toList(),
+                  children: statuses
+                      .map<Widget>(
+                        (status) => Chip(
+                          label: Text('${status['name']} (${status['count']})'),
+                          backgroundColor: Colors.green.shade100,
+                        ),
+                      )
+                      .toList(),
                 ),
               ],
             ),
@@ -318,9 +376,7 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: Text('Données complètes du diagnostic'),
-                    ),
+                    Expanded(child: Text('Données complètes du diagnostic')),
                     ElevatedButton.icon(
                       onPressed: _copyRawDataToClipboard,
                       icon: Icon(Icons.copy),
@@ -345,10 +401,7 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
                   child: SingleChildScrollView(
                     child: Text(
                       JsonEncoder.withIndent('  ').convert(_diagnosticData),
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(fontFamily: 'monospace', fontSize: 12),
                     ),
                   ),
                 ),
@@ -373,7 +426,9 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
       print('🔍 Début du diagnostic pour projet $_selectedProjectId');
 
       // Récupère les work packages du projet
-      final workPackages = await _apiService.getWorkPackages(_selectedProjectId!);
+      final workPackages = await _apiService.getWorkPackages(
+        _selectedProjectId!,
+      );
 
       if (workPackages.isEmpty) {
         throw Exception('Aucun work package trouvé pour ce projet');
@@ -390,7 +445,6 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
       });
 
       print('✅ Diagnostic terminé');
-
     } catch (e) {
       print('❌ Erreur diagnostic: $e');
       setState(() {
@@ -400,7 +454,9 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
     }
   }
 
-  Map<String, dynamic> _analyzeWorkPackages(List<Map<String, dynamic>> workPackages) {
+  Map<String, dynamic> _analyzeWorkPackages(
+    List<Map<String, dynamic>> workPackages,
+  ) {
     print('📊 Analyse de ${workPackages.length} work packages...');
 
     // Compteurs pour le résumé
@@ -421,7 +477,8 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
 
         // Distribution des pourcentages
         final percentageKey = percentageDone.toString();
-        percentageDistribution[percentageKey] = (percentageDistribution[percentageKey] ?? 0) + 1;
+        percentageDistribution[percentageKey] =
+            (percentageDistribution[percentageKey] ?? 0) + 1;
       }
 
       // Analyse des types
@@ -470,19 +527,19 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
         'percentageDistribution': percentageDistribution,
         'sampleTasks': sampleTasks,
       },
-      'types': sortedTypes.map((entry) => {
-        'name': entry.key,
-        'count': entry.value,
-      }).toList(),
-      'statuses': sortedStatuses.map((entry) => {
-        'name': entry.key,
-        'count': entry.value,
-      }).toList(),
+      'types': sortedTypes
+          .map((entry) => {'name': entry.key, 'count': entry.value})
+          .toList(),
+      'statuses': sortedStatuses
+          .map((entry) => {'name': entry.key, 'count': entry.value})
+          .toList(),
       'rawSample': workPackages.take(3).toList(), // 3 premiers pour inspection
     };
 
     print('📈 Analyse terminée:');
-    print('  - ${tasksWithPercentage} tâches avec pourcentage sur ${workPackages.length}');
+    print(
+      '  - ${tasksWithPercentage} tâches avec pourcentage sur ${workPackages.length}',
+    );
     print('  - ${leafTasks} tâches potentiellement "feuilles"');
     print('  - ${types.length} types différents');
     print('  - ${statuses.length} statuts différents');
@@ -492,7 +549,8 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
 
   /// Heuristique simple pour identifier les tâches "feuilles"
   bool _isPotentialLeafTask(Map<String, dynamic> wp) {
-    final type = wp['_links']?['type']?['title']?.toString().toLowerCase() ?? '';
+    final type =
+        wp['_links']?['type']?['title']?.toString().toLowerCase() ?? '';
     final subject = wp['subject']?.toString().toLowerCase() ?? '';
     final percentageDone = wp['percentageDone'];
     // Exclut les types "conteneurs"

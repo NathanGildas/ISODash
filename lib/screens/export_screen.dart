@@ -13,21 +13,13 @@ class _ExportScreenState extends State<ExportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Export & Documentation'),
+        backgroundColor: Color(0xFF1976D2),
+        foregroundColor: Colors.white,
+      ),
       body: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              children: [
-                Text(
-                  'Export & Documentation',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),

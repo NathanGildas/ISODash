@@ -22,41 +22,32 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Évolution des Indicateurs'),
+        backgroundColor: Color(0xFF1976D2),
+        foregroundColor: Colors.white,
+        actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return IconButton(
+                icon: Icon(
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  final newMode = themeProvider.isDarkMode
+                      ? ThemeMode.light
+                      : ThemeMode.dark;
+                  themeProvider.setThemeMode(newMode);
+                },
+                tooltip: 'Changer le thème',
+              );
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
-          // Custom app bar content
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              children: [
-                Text(
-                  'Évolution des Indicateurs',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                Consumer<ThemeProvider>(
-                  builder: (context, themeProvider, child) {
-                    return IconButton(
-                      icon: Icon(
-                        themeProvider.isDarkMode
-                            ? Icons.light_mode
-                            : Icons.dark_mode,
-                      ),
-                      onPressed: () {
-                        final newMode = themeProvider.isDarkMode
-                            ? ThemeMode.light
-                            : ThemeMode.dark;
-                        themeProvider.setThemeMode(newMode);
-                      },
-                      tooltip: 'Changer le thème',
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: Consumer<KPIProvider>(
               builder: (context, kpiProvider, child) {
@@ -139,19 +130,20 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 32),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => provider.goToPreviousMonth(),
-                    icon: const Icon(Icons.arrow_back),
-                    label: Text('Mois précédent'),
+                IconButton(
+                  onPressed: () => provider.goToPreviousMonth(),
+                  icon: const Icon(Icons.arrow_back),
+                  style: IconButton.styleFrom(
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
-                  flex: 2,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       vertical: 12,
@@ -178,12 +170,14 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => provider.goToNextMonth(),
-                    icon: const Icon(Icons.arrow_forward),
-                    label: Text('Mois suivant'),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => provider.goToNextMonth(),
+                  icon: const Icon(Icons.arrow_forward),
+                  style: IconButton.styleFrom(
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                   ),
                 ),
               ],
@@ -202,10 +196,16 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tendances des KPI',
+              'Tendances des KPI ',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '(Placeholder)',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w300),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -214,7 +214,10 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(
                   width: 800, // Wide enough for 12 months
-                  child: _buildEvolutionChart(provider),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: _buildEvolutionChart(provider),
+                  ),
                 ),
               ),
             ),
@@ -227,18 +230,18 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
   Widget _buildEvolutionChart(KPIProvider provider) {
     // Mock data for full year demonstration
     final spots = [
-      const FlSpot(1, 65),   // Janvier
-      const FlSpot(2, 70),   // Février
-      const FlSpot(3, 75),   // Mars
-      const FlSpot(4, 72),   // Avril
-      const FlSpot(5, 78),   // Mai
-      const FlSpot(6, 82),   // Juin
-      const FlSpot(7, 79),   // Juillet
-      const FlSpot(8, 85),   // Août
-      const FlSpot(9, 88),   // Septembre
-      const FlSpot(10, 84),  // Octobre
-      const FlSpot(11, 90),  // Novembre
-      const FlSpot(12, 87),  // Décembre
+      const FlSpot(1, 65), // Janvier
+      const FlSpot(2, 70), // Février
+      const FlSpot(3, 75), // Mars
+      const FlSpot(4, 72), // Avril
+      const FlSpot(5, 78), // Mai
+      const FlSpot(6, 82), // Juin
+      const FlSpot(7, 79), // Juillet
+      const FlSpot(8, 85), // Août
+      const FlSpot(9, 88), // Septembre
+      const FlSpot(10, 84), // Octobre
+      const FlSpot(11, 90), // Novembre
+      const FlSpot(12, 87), // Décembre
     ];
 
     return LineChart(
@@ -269,8 +272,18 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
               interval: 1,
               getTitlesWidget: (value, meta) {
                 const months = [
-                  'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
-                  'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'
+                  'Jan',
+                  'Fév',
+                  'Mar',
+                  'Avr',
+                  'Mai',
+                  'Juin',
+                  'Jul',
+                  'Aoû',
+                  'Sep',
+                  'Oct',
+                  'Nov',
+                  'Déc',
                 ];
                 if (value.toInt() >= 1 && value.toInt() <= months.length) {
                   return Text(

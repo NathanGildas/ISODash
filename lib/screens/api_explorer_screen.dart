@@ -28,7 +28,7 @@ class _APIExplorerScreenState extends State<APIExplorerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('OpenProject API Explorer'),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: Color(0xFF1976D2),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/kpi_provider.dart';
 import '../providers/theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_explorer_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,22 +16,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Paramètres'),
+        backgroundColor: Color(0xFF1976D2),
+        foregroundColor: Colors.white,
+      ),
       body: Column(
         children: [
-          // Custom app bar content
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              children: [
-                Text(
-                  'Paramètres',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -42,6 +34,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildDataSection(),
                   const SizedBox(height: 24),
                   _buildAccountSection(),
+                  const SizedBox(height: 24),
+                  _buildAPISection(),
                   const SizedBox(height: 24),
                   _buildAboutSection(),
                   const SizedBox(height: 100), // Space for bottom nav
@@ -238,6 +232,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildAPISection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.api,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'APIs & Intégrations',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text('Explorer les APIs OpenProject'),
+              subtitle: const Text('Tester la connectivité et analyser les endpoints'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () => _navigateToAPIExplorer(),
+            ),
+            ListTile(
+              leading: const Icon(Icons.integration_instructions),
+              title: const Text('Configuration des intégrations'),
+              subtitle: const Text('Gérer les connexions externes et webhooks'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () => _showIntegrationsDialog(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAboutSection() {
     return Card(
       child: Padding(
@@ -382,5 +419,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
+  }
+
+  void _navigateToAPIExplorer() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const APIExplorerScreen(),
+      ),
+    );
+  }
+
+  void _showIntegrationsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Configuration des intégrations'),
+        content: const Text(
+          'Cette fonctionnalité permettra de configurer les intégrations avec des services externes.\n\n'
+          'Fonctionnalités à venir :\n'
+          '• Webhooks OpenProject\n'
+          '• Export automatique vers Teams/Slack\n'
+          '• Synchronisation calendrier\n'
+          '• Notifications par email',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
   }
 }
