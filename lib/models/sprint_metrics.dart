@@ -28,12 +28,16 @@ class SprintMetrics {
 
   // Getters utiles
   int get durationInDays => endDate.difference(startDate).inDays + 1;
-  double get completionRate => totalTasks > 0 ? (completedTasks / totalTasks * 100) : 0;
-  double get testingRate => totalTasks > 0 ? (testedTasks / totalTasks * 100) : 0;
+  double get completionRate =>
+      totalTasks > 0 ? (completedTasks / totalTasks * 100) : 0;
+  double get testingRate =>
+      totalTasks > 0 ? (testedTasks / totalTasks * 100) : 0;
   bool get needsCauseDocumentation => !isCompliant && (causes?.isEmpty ?? true);
 
-  String get monthKey => '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}';
-  String get quarterKey => '${startDate.year}-Q${((startDate.month - 1) ~/ 3) + 1}';
+  String get monthKey =>
+      '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}';
+  String get quarterKey =>
+      '${startDate.year}-Q${((startDate.month - 1) ~/ 3) + 1}';
 
   Map<String, dynamic> toJson() {
     return {
@@ -63,9 +67,9 @@ class SprintMetrics {
       totalTasks: json['totalTasks'],
       completedTasks: json['completedTasks'],
       testedTasks: json['testedTasks'],
-      causes: json['causes']?.map<PerformanceCause>(
-            (c) => PerformanceCause.fromJson(c),
-      ).toList(),
+      causes: json['causes']
+          ?.map<PerformanceCause>((c) => PerformanceCause.fromJson(c))
+          .toList(),
     );
   }
 
@@ -135,7 +139,7 @@ class PerformanceCause {
       projectId: json['projectId'],
       sprintId: json['sprintId'],
       category: CauseCategory.values.firstWhere(
-            (e) => e.toString() == json['category'],
+        (e) => e.toString() == json['category'],
       ),
       description: json['description'],
       createdAt: DateTime.parse(json['createdAt']),
@@ -151,13 +155,13 @@ class PerformanceCause {
 }
 
 enum CauseCategory {
-  technical,    // Problèmes techniques
-  resources,    // Manque de ressources/RH
-  external,     // Facteurs externes
-  planning,     // Problèmes de planification
-  quality,      // Problèmes de qualité
+  technical, // Problèmes techniques
+  resources, // Manque de ressources/RH
+  external, // Facteurs externes
+  planning, // Problèmes de planification
+  quality, // Problèmes de qualité
   dependencies, // Dépendances bloquantes
-  other,        // Autres
+  other, // Autres
 }
 
 extension CauseCategoryExtension on CauseCategory {

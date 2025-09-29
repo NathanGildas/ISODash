@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/kpi_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/kpi_indicator.dart';
 
 class KPIDashboardScreen extends StatefulWidget {
@@ -23,207 +24,492 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('ISODash - Indicateurs ISO'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () => context.read<KPIProvider>().refresh(),
-            tooltip: 'Actualiser les données',
-          ),
-          IconButton(
-            icon: Icon(Icons.file_download),
-            onPressed: () => _exportReport(context),
-            tooltip: 'Exporter le rapport',
-          ),
-        ],
-      ),
-      body: Consumer<KPIProvider>(
-        builder: (context, kpiProvider, child) {
-          if (kpiProvider.isLoading) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Calcul des indicateurs ISO...'),
-                ],
-              ),
-            );
-          }
-
-          if (kpiProvider.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  SizedBox(height: 16),
-                  Text(
-                    'Erreur',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    kpiProvider.errorMessage!,
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => kpiProvider.refresh(),
-                    child: Text('Réessayer'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Sélecteur de période
-                _buildPeriodSelector(context, kpiProvider),
-                SizedBox(height: 24),
-
-                // Résumé global
-                _buildGlobalSummary(kpiProvider),
-                SizedBox(height: 24),
-
-                // KPI Cards
-                _buildKPICards(kpiProvider),
-                SizedBox(height: 24),
-
-                // Graphique placeholder
-                _buildTrendChart(kpiProvider),
-                SizedBox(height: 24),
-
-                // Actions rapides
-                _buildQuickActions(context),
-              ],
+    return PopScope(
+      canPop: false, // Empêche la sortie automatique
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _showExitConfirmationDialog(context);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('ISODash - Indicateurs ISO'),
+          actions: [
+            Consumer<KPIProvider>(
+              builder: (context, kpiProvider, child) {
+                return IconButton(
+                  icon: Icon(Icons.refresh),
+                  onPressed: () => _handleRefresh(context, kpiProvider),
+                  tooltip: 'Actualiser les données',
+                );
+              },
             ),
-          );
-        },
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, child) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return PopupMenuButton<ThemeMode>(
+                  icon: Icon(
+                    isDark ? Icons.dark_mode : Icons.light_mode,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Changer le thème',
+                  onSelected: (ThemeMode mode) {
+                    themeProvider.setThemeMode(mode);
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: ThemeMode.light,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.light_mode,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Clair'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: ThemeMode.dark,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.dark_mode,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Sombre'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: ThemeMode.system,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.auto_mode,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Système'),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+        body: Consumer<KPIProvider>(
+          builder: (context, kpiProvider, child) {
+            if (kpiProvider.isLoading) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Calcul des indicateurs ISO...'),
+                  ],
+                ),
+              );
+            }
+
+            if (kpiProvider.errorMessage != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text(
+                      'Erreur',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      kpiProvider.errorMessage!,
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => _handleRefresh(context, kpiProvider),
+                      child: Text('Réessayer'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(
+                MediaQuery.of(context).size.width < 600 ? 12 : 16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Sélecteur de période
+                  _buildPeriodSelector(context, kpiProvider),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.width < 600 ? 16 : 24,
+                  ),
+
+                  // Résumé global
+                  _buildGlobalSummary(kpiProvider),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.width < 600 ? 16 : 24,
+                  ),
+
+                  // KPI Cards
+                  _buildKPICards(kpiProvider),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.width < 600 ? 16 : 24,
+                  ),
+
+                  // Graphique placeholder
+                  _buildTrendChart(kpiProvider),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.width < 600 ? 16 : 24,
+                  ),
+
+                  // Actions rapides
+                  _buildQuickActions(context),
+
+                  // Bottom safe area for mobile
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
+  /// Gère le rafraîchissement avec vérification du statut de chargement
+  void _handleRefresh(BuildContext context, KPIProvider kpiProvider) {
+    if (kpiProvider.isLoading) {
+      _showLoadingSnackBar(context);
+      return;
+    }
+    kpiProvider.refresh();
+  }
+
+  /// Affiche un snackbar discret pour indiquer qu'un chargement est en cours
+  void _showLoadingSnackBar(BuildContext context) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Chargement en cours... Veuillez patienter'),
+          ],
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.9),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+        margin: EdgeInsets.fromLTRB(16, 0, 16, 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  /// Affiche une dialog de confirmation pour quitter l'app
+  void _showExitConfirmationDialog(BuildContext context) {
+    showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.exit_to_app,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              SizedBox(width: 8),
+              Expanded(child: Text('Quitter l\'application ?')),
+            ],
+          ),
+          content: Text(
+            'Êtes-vous sûr de vouloir fermer ISODash ?\n\nVos données seront sauvegardées automatiquement.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+                // Quitter l'application
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Fermer'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildPeriodSelector(BuildContext context, KPIProvider provider) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Période d\'analyse',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 12),
 
-            Row(
-              children: [
-                // Navigation mensuelle
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text('Mensuel', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            onPressed: provider.goToPreviousMonth,
-                            icon: Icon(Icons.chevron_left),
-                          ),
-                          Text(
-                            provider.currentMonthDisplay,
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          IconButton(
-                            onPressed: provider.goToNextMonth,
-                            icon: Icon(Icons.chevron_right),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(width: 16),
-
-                // Navigation trimestrielle
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text('Trimestriel', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            onPressed: provider.goToPreviousQuarter,
-                            icon: Icon(Icons.chevron_left),
-                          ),
-                          Text(
-                            provider.currentQuarterDisplay,
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          IconButton(
-                            onPressed: provider.goToNextQuarter,
-                            icon: Icon(Icons.chevron_right),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            if (isSmallScreen) ...[
+              // Layout vertical pour petits écrans
+              _buildMobilePeriodSelector(provider),
+            ] else ...[
+              // Layout horizontal pour grands écrans
+              _buildDesktopPeriodSelector(provider),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMobilePeriodSelector(KPIProvider provider) {
+    return Column(
+      children: [
+        // Navigation mensuelle
+        _buildPeriodSection(
+          'Mensuel',
+          provider.currentMonthDisplay,
+          provider.goToPreviousMonth,
+          provider.goToNextMonth,
+          Icons.calendar_month,
+        ),
+        SizedBox(height: 16),
+
+        // Navigation trimestrielle
+        _buildPeriodSection(
+          'Trimestriel',
+          provider.currentQuarterDisplay,
+          provider.goToPreviousQuarter,
+          provider.goToNextQuarter,
+          Icons.calendar_view_month,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopPeriodSelector(KPIProvider provider) {
+    return Row(
+      children: [
+        // Navigation mensuelle
+        Expanded(
+          child: _buildPeriodSection(
+            'Mensuel',
+            provider.currentMonthDisplay,
+            provider.goToPreviousMonth,
+            provider.goToNextMonth,
+            Icons.calendar_month,
+          ),
+        ),
+        SizedBox(width: 16),
+
+        // Navigation trimestrielle
+        Expanded(
+          child: _buildPeriodSection(
+            'Trimestriel',
+            provider.currentQuarterDisplay,
+            provider.goToPreviousQuarter,
+            provider.goToNextQuarter,
+            Icons.calendar_view_month,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPeriodSection(
+    String title,
+    String currentPeriod,
+    VoidCallback onPrevious,
+    VoidCallback onNext,
+    IconData icon,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              SizedBox(width: 4),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: onPrevious,
+                icon: Icon(Icons.chevron_left),
+                iconSize: 20,
+                constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+                padding: EdgeInsets.zero,
+              ),
+              Expanded(
+                child: Text(
+                  currentPeriod,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                onPressed: onNext,
+                icon: Icon(Icons.chevron_right),
+                iconSize: 20,
+                constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+                padding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildGlobalSummary(KPIProvider provider) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildSummaryItem(
-                'Conformité Globale',
-                '${provider.overallComplianceRate.toStringAsFixed(1)}%',
-                provider.overallComplianceRate >= 80 ? Colors.green : Colors.red,
-                Icons.assessment,
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+        child: isSmallScreen
+            ? Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSummaryItem(
+                          'Conformité Globale',
+                          '${provider.overallComplianceRate.toStringAsFixed(1)}%',
+                          provider.overallComplianceRate >= 80
+                              ? Colors.green
+                              : Colors.red,
+                          Icons.assessment,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: _buildSummaryItem(
+                          'KPI Calculés',
+                          '${provider.kpis.length}',
+                          provider.kpis.isNotEmpty ? Colors.blue : Colors.grey,
+                          Icons.analytics,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  _buildSummaryItem(
+                    'Période',
+                    provider.currentMonthDisplay,
+                    Theme.of(context).colorScheme.primary,
+                    Icons.calendar_month,
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _buildSummaryItem(
+                      'Conformité Globale',
+                      '${provider.overallComplianceRate.toStringAsFixed(1)}%',
+                      provider.overallComplianceRate >= 80
+                          ? Colors.green
+                          : Colors.red,
+                      Icons.assessment,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildSummaryItem(
+                      'KPI Calculés',
+                      '${provider.kpis.length}',
+                      provider.kpis.isNotEmpty ? Colors.blue : Colors.grey,
+                      Icons.analytics,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildSummaryItem(
+                      'Période',
+                      provider.currentMonthDisplay,
+                      Theme.of(context).colorScheme.primary,
+                      Icons.calendar_month,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Expanded(
-              child: _buildSummaryItem(
-                'KPI Calculés',
-                '${provider.kpis.length}',
-                provider.kpis.isNotEmpty ? Colors.blue : Colors.grey,
-                Icons.analytics,
-              ),
-            ),
-            Expanded(
-              child: _buildSummaryItem(
-                'Période',
-                provider.currentMonthDisplay,
-                Colors.purple,
-                Icons.calendar_month,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildSummaryItem(String title, String value, Color color, IconData icon) {
+  Widget _buildSummaryItem(
+    String title,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Column(
       children: [
         Icon(icon, size: 32, color: color),
@@ -290,43 +576,89 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
         ),
         SizedBox(height: 12),
 
-        ...kpis.map((kpi) => Container(
-          margin: EdgeInsets.only(bottom: 12),
-          child: _buildKPICard(kpi),
-        )).toList(),
+        ...kpis
+            .map(
+              (kpi) => Container(
+                margin: EdgeInsets.only(bottom: 12),
+                child: _buildKPICard(kpi),
+              ),
+            )
+            .toList(),
       ],
     );
   }
 
   Widget _buildKPICard(KPIIndicator kpi) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+        child: isSmallScreen
+            ? _buildMobileKPICard(kpi)
+            : _buildDesktopKPICard(kpi),
+      ),
+    );
+  }
+
+  Widget _buildMobileKPICard(KPIIndicator kpi) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // En-tête avec nom et statut
+        Row(
           children: [
-            // Gauge circulaire
+            Expanded(
+              child: Text(
+                kpi.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            _buildStatusChip(kpi.status),
+          ],
+        ),
+        SizedBox(height: 8),
+
+        // Description
+        Text(
+          kpi.type.description,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+        SizedBox(height: 16),
+
+        // Valeurs et gauge dans une row
+        Row(
+          children: [
+            // Gauge circulaire compact
             SizedBox(
-              width: 80,
-              height: 80,
+              width: 60,
+              height: 60,
               child: Stack(
                 children: [
                   PieChart(
                     PieChartData(
                       startDegreeOffset: -90,
                       sectionsSpace: 0,
-                      centerSpaceRadius: 25,
+                      centerSpaceRadius: 20,
                       sections: [
                         PieChartSectionData(
                           value: kpi.currentValue.clamp(0, 100),
                           color: _getKPIColor(kpi.status),
                           showTitle: false,
-                          radius: 15,
+                          radius: 12,
                         ),
                         PieChartSectionData(
                           value: (100 - kpi.currentValue).clamp(0, 100),
-                          color: Colors.grey.shade200,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withOpacity(0.2),
                           showTitle: false,
-                          radius: 15,
+                          radius: 12,
                         ),
                       ],
                     ),
@@ -334,8 +666,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                   Center(
                     child: Text(
                       '${kpi.currentValue.toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: _getKPIColor(kpi.status),
                       ),
@@ -347,56 +678,155 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
 
             SizedBox(width: 16),
 
-            // Informations
+            // Valeurs
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        kpi.name,
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      Spacer(),
-                      _buildStatusChip(kpi.status),
-                    ],
+                  Text(
+                    'Valeur: ${kpi.displayValue}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: _getKPIColor(kpi.status),
+                    ),
                   ),
                   SizedBox(height: 4),
                   Text(
-                    kpi.type.description,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Text(
-                        'Valeur: ${kpi.displayValue}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: _getKPIColor(kpi.status),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Text(
-                        'Objectif: ${kpi.displayTarget}',
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: (kpi.currentValue / 100).clamp(0.0, 1.0),
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation(_getKPIColor(kpi.status)),
+                    'Objectif: ${kpi.displayTarget}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
                 ],
               ),
             ),
           ],
         ),
-      ),
+
+        SizedBox(height: 12),
+
+        // Barre de progression
+        LinearProgressIndicator(
+          value: (kpi.currentValue / 100).clamp(0.0, 1.0),
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.outline.withOpacity(0.2),
+          valueColor: AlwaysStoppedAnimation(_getKPIColor(kpi.status)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopKPICard(KPIIndicator kpi) {
+    return Row(
+      children: [
+        // Gauge circulaire
+        SizedBox(
+          width: 80,
+          height: 80,
+          child: Stack(
+            children: [
+              PieChart(
+                PieChartData(
+                  startDegreeOffset: -90,
+                  sectionsSpace: 0,
+                  centerSpaceRadius: 25,
+                  sections: [
+                    PieChartSectionData(
+                      value: kpi.currentValue.clamp(0, 100),
+                      color: _getKPIColor(kpi.status),
+                      showTitle: false,
+                      radius: 15,
+                    ),
+                    PieChartSectionData(
+                      value: (100 - kpi.currentValue).clamp(0, 100),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withOpacity(0.2),
+                      showTitle: false,
+                      radius: 15,
+                    ),
+                  ],
+                ),
+              ),
+              Center(
+                child: Text(
+                  '${kpi.currentValue.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _getKPIColor(kpi.status),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        SizedBox(width: 16),
+
+        // Informations
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      kpi.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  _buildStatusChip(kpi.status),
+                ],
+              ),
+              SizedBox(height: 4),
+              Text(
+                kpi.type.description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+              SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Valeur: ${kpi.displayValue}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: _getKPIColor(kpi.status),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Text(
+                    'Objectif: ${kpi.displayTarget}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: (kpi.currentValue / 100).clamp(0.0, 1.0),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.outline.withOpacity(0.2),
+                valueColor: AlwaysStoppedAnimation(_getKPIColor(kpi.status)),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -425,10 +855,7 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
 
     return Chip(
       avatar: Icon(icon, size: 16, color: Colors.white),
-      label: Text(
-        label,
-        style: TextStyle(color: Colors.white, fontSize: 12),
-      ),
+      label: Text(label, style: TextStyle(color: Colors.white, fontSize: 12)),
       backgroundColor: color,
     );
   }
@@ -470,7 +897,10 @@ class _KPIDashboardScreenState extends State<KPIDashboardScreen> {
                     ),
                     Text(
                       'À implémenter dans Sprint 3',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
                     ),
                   ],
                 ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../providers/theme_provider.dart';
 
 class GuidedAuthScreen extends StatefulWidget {
   const GuidedAuthScreen({super.key});
@@ -31,27 +33,219 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return PopScope(
+      canPop: false, // Empêche la sortie automatique
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _handleBackButton(context);
+      },
+      child: Scaffold(
       appBar: AppBar(
-        title: Text('Configuration OpenProject'),
-        //Indicateur de progression
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            // Check available width for responsive title
+            final screenWidth = MediaQuery.of(context).size.width;
+            final isSmallScreen = screenWidth < 400;
+
+            return Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.settings_applications,
+                    color: theme.colorScheme.secondary,
+                    size: 20,
+                  ),
+                ),
+                SizedBox(width: isSmallScreen ? 8 : 12),
+                Expanded(
+                  child: Text(
+                    isSmallScreen ? 'Configuration' : 'Configuration OpenProject',
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).appBarTheme.titleTextStyle,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return PopupMenuButton<ThemeMode>(
+                icon: Icon(
+                  isDark ? Icons.dark_mode : Icons.light_mode,
+                  color: Colors.white,
+                ),
+                onSelected: (ThemeMode mode) {
+                  themeProvider.setThemeMode(mode);
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: ThemeMode.light,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.light_mode,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        SizedBox(width: 8),
+                        Text('Clair'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: ThemeMode.dark,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.dark_mode,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        SizedBox(width: 8),
+                        Text('Sombre'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: ThemeMode.system,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.auto_mode,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        SizedBox(width: 8),
+                        Text('Système'),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(4.0),
-          child: LinearProgressIndicator(
-            value: (_currentStep + 1) / 4, //Progression 25% → 50% → 75% → 100%
+          preferredSize: Size.fromHeight(12.0),
+          child: Column(
+            children: [
+              // Indicateur de progression moderne
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(4, (index) {
+                    bool isActive = index <= _currentStep;
+                    bool isCurrent = index == _currentStep;
+
+                    return Expanded(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 2),
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isActive
+                            ? theme.colorScheme.secondary
+                            : theme.colorScheme.secondary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(2),
+                          boxShadow: isCurrent ? [
+                            BoxShadow(
+                              color: theme.colorScheme.secondary.withOpacity(0.4),
+                              blurRadius: 4,
+                              offset: Offset(0, 1),
+                            )
+                          ] : null,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              SizedBox(height: 8),
+            ],
           ),
         ),
       ),
-      body: PageView(
-        controller: _pageController,
-        physics: NeverScrollableScrollPhysics(), //Empêche le swipe manuel
-        children: [
-          _buildUrlStep(), //étape 0
-          _buildGuideStep(), //étape 1
-          _buildApiKeyStep(), //étape 2
-          _buildTestStep(), //étape 3
-        ],
+        body: PageView(
+          controller: _pageController,
+          physics: NeverScrollableScrollPhysics(),
+          children: [
+            _buildUrlStep(),
+            _buildGuideStep(),
+            _buildApiKeyStep(),
+            _buildTestStep(),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// Gère le comportement du bouton retour natif
+  void _handleBackButton(BuildContext context) {
+    if (_currentStep > 0) {
+      // Si on n'est pas à la première étape, aller à l'étape précédente
+      _goToPreviousStep();
+    } else {
+      // Si on est à la première étape, demander confirmation de sortie
+      _showExitConfirmationDialog(context);
+    }
+  }
+
+  /// Affiche une dialog de confirmation pour quitter l'app
+  void _showExitConfirmationDialog(BuildContext context) {
+    showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.exit_to_app,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Quitter l\'application ?',
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Êtes-vous sûr de vouloir quitter l\'application ?\n\nVos paramètres non sauvegardés seront perdus.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+                // Quitter l'application
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Quitter'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -333,94 +527,110 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
   Widget _buildGuideStep() {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    
-    return SingleChildScrollView(
-      child: Padding(
-        padding: isSmallScreen ? EdgeInsets.all(16.0) : EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          // Titre
-          Text(
-            'Étape 2: Ouvrir OpenProject',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          SizedBox(height: 16),
+    final screenHeight = MediaQuery.of(context).size.height;
+    final availableHeight = screenHeight - MediaQuery.of(context).padding.top - kToolbarHeight - 100;
 
-          // Instructions
-          Text(
-            'Nous allons vous guider pour générer votre clé API OpenProject.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          SizedBox(height: 24),
-
-          // Card avec instructions visuelles
-          Card(
-            elevation: 4, // Ombre portée
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.open_in_new,
-                    size: 48,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Cliquez sur le bouton ci-dessous pour ouvrir OpenProject dans un nouvel onglet.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: isSmallScreen
+              ? EdgeInsets.all(12.0)
+              : EdgeInsets.all(20.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: availableHeight,
             ),
-          ),
-
-          SizedBox(height: 24),
-
-            // Bouton pour ouvrir OpenProject
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _openProjectInNewTab,
-                icon: Icon(Icons.launch),
-                label: Text('Ouvrir OpenProject'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-
-          SizedBox(height: 24),
-
-          // Instructions étape par étape
-          _buildStepByStepInstructions(),
-
-            SizedBox(height: 32),
-
-            // Boutons navigation
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _goToPreviousStep,
-                    child: Text('Précédent'),
+                // Titre
+                Text(
+                  'Étape 2: Ouvrir OpenProject',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                SizedBox(height: isSmallScreen ? 12 : 16),
+
+                // Instructions
+                Text(
+                  'Nous allons vous guider pour générer votre clé API OpenProject.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                SizedBox(height: isSmallScreen ? 16 : 24),
+
+                // Card avec instructions visuelles - Compacte pour mobile
+                Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: EdgeInsets.all(isSmallScreen ? 12.0 : 16.0),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.open_in_new,
+                          size: isSmallScreen ? 32 : 40,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Cliquez sur le bouton ci-dessous pour ouvrir OpenProject.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _goToNextStep,
-                    child: Text('J\'ai généré ma clé'),
+
+                SizedBox(height: isSmallScreen ? 16 : 24),
+
+                // Bouton pour ouvrir OpenProject
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _openProjectInNewTab,
+                    icon: Icon(Icons.launch),
+                    label: Text('Ouvrir OpenProject'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        vertical: isSmallScreen ? 12 : 16,
+                      ),
+                    ),
                   ),
                 ),
+
+                SizedBox(height: isSmallScreen ? 16 : 24),
+
+                // Instructions étape par étape - Plus compactes
+                _buildStepByStepInstructions(),
+
+                SizedBox(height: isSmallScreen ? 24 : 32),
+
+                // Boutons navigation
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _goToPreviousStep,
+                        child: Text('Précédent'),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _goToNextStep,
+                        child: Text('J\'ai généré ma clé'),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Bottom padding for mobile safe area
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

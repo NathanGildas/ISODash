@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../services/real_kpi_calculator_service.dart'; // 🆕 Nouveau service
+import '../services/kpi_calculator_service.dart'; // Service refactorisé avec logique métier précise
 import '../models/kpi_indicator.dart';
 import '../models/sprint_metrics.dart';
 
 class KPIProvider with ChangeNotifier {
-  final RealKPICalculatorService _calculatorService = RealKPICalculatorService(); // 🆕
+  final KPICalculatorService _calculatorService = KPICalculatorService(); // Service refactorisé
 
   // État des KPI
   List<KPIIndicator> _kpis = [];
@@ -48,7 +48,7 @@ class KPIProvider with ChangeNotifier {
     try {
       print('🔄 Chargement KPI pour ${_selectedPeriod.toString()}');
 
-      // Calcule tous les KPI
+      // Calcule tous les KPI (l'initialisation se fait dans le service)
       final kpis = await _calculatorService.calculateAllKPIs(
         forDate: _selectedPeriod,
         forceRefresh: forceRefresh,
@@ -219,7 +219,7 @@ class KPIProvider with ChangeNotifier {
 
   /// Efface toutes les données (pour les tests)
   Future<void> clearAllData() async {
-    await _calculatorService.clearHistoricalData();
+    await _calculatorService.clearAllData();
     _kpis.clear();
     // _sprintsNeedingCauses.clear(); // Commenté
     _clearError();
@@ -229,6 +229,71 @@ class KPIProvider with ChangeNotifier {
 
   /// Informations de debug
   Future<Map<String, dynamic>> getDebugInfo() async {
-    return await _calculatorService.getDebugInfo();
+    return {
+      'kpis_loaded': _kpis.length,
+      'selected_period': _selectedPeriod.toString(),
+      'excluded_projects': _calculatorService.excludedProjectIds.length,
+      'last_update': DateTime.now().toString(),
+    };
   }
+
+  /// ============================================================================
+  /// GESTION DES EXCLUSIONS DE PROJETS
+  /// ============================================================================
+
+  /// Récupère la liste des projets exclus
+  Set<int> get excludedProjectIds => _calculatorService.excludedProjectIds;
+
+  /// Exclut un projet des calculs KPI
+  Future<void> excludeProject(int projectId) async {
+    try {
+      await _calculatorService.excludeProject(projectId);
+      print('✅ Projet $projectId exclu des calculs');
+
+      // Recharge les KPI pour refléter l'exclusion
+      await loadKPIs(forceRefresh: true);
+    } catch (e) {
+      print('❌ Erreur exclusion projet $projectId: $e');
+      _setError('Impossible d\'exclure le projet: $e');
+    }
+  }
+
+  /// Inclut un projet dans les calculs KPI
+  Future<void> includeProject(int projectId) async {
+    try {
+      await _calculatorService.includeProject(projectId);
+      print('✅ Projet $projectId inclus dans les calculs');
+
+      // Recharge les KPI pour refléter l'inclusion
+      await loadKPIs(forceRefresh: true);
+    } catch (e) {
+      print('❌ Erreur inclusion projet $projectId: $e');
+      _setError('Impossible d\'inclure le projet: $e');
+    }
+  }
+
+  /// Vérifie si un projet est exclu
+  bool isProjectExcluded(int projectId) {
+    return _calculatorService.excludedProjectIds.contains(projectId);
+  }
+
+  /// ============================================================================
+  /// MODE TEST - POUR INCLURE PLUS DE DONNÉES
+  /// ============================================================================
+
+  /// Active le mode test (inclut projets/versions/tâches fermés)
+  void enableTestMode() {
+    _calculatorService.setTestMode(true);
+    notifyListeners();
+  }
+
+  /// Désactive le mode test (mode production normal)
+  void disableTestMode() {
+    _calculatorService.setTestMode(false);
+    notifyListeners();
+  }
+
+  /// Récupère l'état du mode test
+  bool get isTestMode => _calculatorService.isTestMode;
+
 }

@@ -151,9 +151,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Refresh all data from both providers
   Future<void> _refreshAllData() async {
-    // Show loading indicator in providers
-    context.read<ProjectProvider>().refresh();
-    context.read<KPIProvider>().refreshAll();
+    final projectProvider = context.read<ProjectProvider>();
+    final kpiProvider = context.read<KPIProvider>();
+
+    // Check if any provider is already loading
+    if (projectProvider.isLoading || kpiProvider.isLoading) {
+      _showLoadingSnackBar();
+      return;
+    }
+
+    // Refresh both providers
+    projectProvider.refresh();
+    kpiProvider.refresh();
+  }
+
+  /// Affiche un snackbar discret pour indiquer qu'un chargement est en cours
+  void _showLoadingSnackBar() {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Chargement en cours... Veuillez patienter'),
+          ],
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.9),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+        margin: EdgeInsets.fromLTRB(16, 0, 16, 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
   }
 
   /// Refresh a specific KPI
