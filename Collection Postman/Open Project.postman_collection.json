@@ -1,0 +1,66 @@
+{
+	"info": {
+		"_postman_id": "933fdc29-3c36-42b9-9851-19bb0705245c",
+		"name": "Open Project",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "42796974"
+	},
+	"item": [
+		{
+			"name": "Fetch data from online app",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "https://forge2.ebindoo.com/api/v3/projects/316/work_packages",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": "{{baseURL}}/api/v3/projects/316/work_packages"
+			},
+			"response": []
+		},
+		{
+			"name": "Fetch data from local app",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "https://forge2.ebindoo.com/api/v3/projects/316/work_packages",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": {
+						"password": "a4d6fd02713bc4a117995063cc19d9203b6b6329d818506bddc83a75fcfa9c5d",
+						"username": "apikey"
+					}
+				},
+				"method": "GET",
+				"header": [],
+				"url": "{{baseURL}}/api/v3/projects/316/work_packages"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "OpenProjectApiKey",
+			"value": "",
+			"type": "default"
+		}
+	]
+}
