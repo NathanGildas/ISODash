@@ -415,28 +415,9 @@ dependencies:
 - [ ] Deploy to staging environment first
 
 ### 📝 Optional Future Improvements
-- [ ] Replace remaining ~40 print() statements
-- [ ] Fix ~80 withOpacity deprecations (Flutter 3.x cosmetic)
-- [ ] Update deprecated Radio widget properties
 - [ ] Add unit tests for security-critical code
 - [ ] Implement certificate pinning for production domains
 - [ ] Add biometric authentication option
-
----
-
-## 🔄 BREAKING CHANGES
-
-### User Impact
-**Users will need to re-authenticate after updating** because:
-- Credentials moved from SharedPreferences to secure storage
-- Old credentials won't be automatically migrated
-- This is intentional for security (old plaintext credentials should not be kept)
-
-### Migration Steps for Users
-1. Update app
-2. Open app (will show login screen)
-3. Re-enter OpenProject URL and API key
-4. Credentials will be securely stored going forward
 
 ---
 

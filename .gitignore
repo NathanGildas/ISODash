@@ -46,8 +46,53 @@ app.*.map.json
 
 # Claude Code specific files
 .claude/
-CLAUDE.md
 
-# Sensitive configuration files
-lib/proxy_server.dart
+# Sensitive configuration files (CRITICAL - Never commit these)
+android/key.properties
+*.jks
+*.keystore
+.env
+.env.local
+.env.production
+lib/config/secrets.dart
 config.json
+credentials.json
+
+# API Keys and Tokens (SECURITY)
+**/apikey.txt
+**/api_key.txt
+**/token.txt
+.api_keys
+
+# Build artifacts that may contain keys
+/android/app/google-services.json
+/ios/Runner/GoogleService-Info.plist
+
+# Temporary and backup files
+*.backup
+*.bak
+*.tmp
+*~
+.~*
+*.swp
+*.swo
+create_*.py
+
+# Debug and log files
+*.log
+debug.log
+flutter_*.log
+
+# Documentation drafts (keep finals only)
+SETUP.md
+
+# Local development files
+.vscode/launch.json
+.vscode/settings.json
+
+# Some sensitive files
+HANDOFF.md
+CLAUDE.md
+SESSION_FIXES_LOG.md
+DOCUMENTATION_INDEX.md
+QUICK_START.md

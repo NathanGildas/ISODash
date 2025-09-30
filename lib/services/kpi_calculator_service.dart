@@ -404,9 +404,9 @@ class KPICalculatorService {
         }
       }
 
-      if (monthlyValues.length < 2) {
+      if (monthlyValues.isEmpty) {
         Logger.info(
-          '⚠️ Pas assez de données pour $quarterKey (${monthlyValues.length}/3 mois)',
+          '⚠️ Aucune donnée pour $quarterKey',
           tag: 'KPI',
         );
         return null;
@@ -415,8 +415,12 @@ class KPICalculatorService {
       final average =
           monthlyValues.reduce((a, b) => a + b) / monthlyValues.length;
 
+      final monthsNote = monthlyValues.length < 3
+          ? ' (partiel: ${monthlyValues.length}/3 mois)'
+          : '';
+
       Logger.info(
-        '✅ Objectif 1: ${average.toStringAsFixed(1)}% (moyenne de ${monthlyValues.length} mois)',
+        '✅ Objectif 1: ${average.toStringAsFixed(1)}% (moyenne de ${monthlyValues.length} mois)$monthsNote',
         tag: 'KPI',
       );
 
@@ -805,6 +809,9 @@ class KPICalculatorService {
 
   /// Récupère l'état du mode test
   bool get isTestMode => _testMode;
+
+  /// Récupère l'historique mensuel des KPI pour l'affichage des tendances
+  Map<String, double> get monthlyKPIHistory => Map.unmodifiable(_monthlyKPIHistory);
 
   /// Informations de debug
   Future<Map<String, dynamic>> getDebugInfo() async {

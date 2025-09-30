@@ -13,6 +13,8 @@ class KPIEvolutionScreen extends StatefulWidget {
 }
 
 class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
+  KPIType _selectedKPIType = KPIType.monthly; // Objectif 2 par défaut
+
   @override
   void initState() {
     super.initState();
@@ -191,21 +193,48 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
   Widget _buildEvolutionCharts(KPIProvider provider) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Tendances des KPI ',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '(Placeholder)',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w300),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Tendances des KPI',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: DropdownButton<KPIType>(
+                    value: _selectedKPIType,
+                    isExpanded: false,
+                    items: const [
+                      DropdownMenuItem(
+                        value: KPIType.monthly,
+                        child: Text('Obj 2', overflow: TextOverflow.ellipsis),
+                      ),
+                      DropdownMenuItem(
+                        value: KPIType.quarterly,
+                        child: Text('Obj 1', overflow: TextOverflow.ellipsis),
+                      ),
+                      DropdownMenuItem(
+                        value: KPIType.quality,
+                        child: Text('Obj 3', overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                    onChanged: (KPIType? value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedKPIType = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -213,7 +242,7 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(
-                  width: 800, // Wide enough for 12 months
+                  width: _selectedKPIType == KPIType.monthly ? 800 : 400,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: _buildEvolutionChart(provider),
@@ -228,22 +257,46 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
   }
 
   Widget _buildEvolutionChart(KPIProvider provider) {
-    // Mock data for full year demonstration
-    final spots = [
-      const FlSpot(1, 65), // Janvier
-      const FlSpot(2, 70), // Février
-      const FlSpot(3, 75), // Mars
-      const FlSpot(4, 72), // Avril
-      const FlSpot(5, 78), // Mai
-      const FlSpot(6, 82), // Juin
-      const FlSpot(7, 79), // Juillet
-      const FlSpot(8, 85), // Août
-      const FlSpot(9, 88), // Septembre
-      const FlSpot(10, 84), // Octobre
-      const FlSpot(11, 90), // Novembre
-      const FlSpot(12, 87), // Décembre
-    ];
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: provider.calculateKPITrend(
+        kpiType: _selectedKPIType,
+        periodsCount: _selectedKPIType == KPIType.monthly ? 12 : 4,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Erreur: ${snapshot.error}',
+              style: TextStyle(color: Colors.red.shade600),
+            ),
+          );
+        }
+
+        final trendData = snapshot.data ?? [];
+        if (trendData.isEmpty) {
+          return const Center(child: Text('Aucune donnée disponible'));
+        }
+
+        // Convert trend data to FlSpot for the chart
+        final spots = trendData.asMap().entries.map((entry) {
+          final index = entry.key + 1;
+          final value = entry.value['value'] as double;
+          return FlSpot(index.toDouble(), value);
+        }).toList();
+
+        // Get labels from trend data
+        final labels = trendData.map((d) => d['label'] as String).toList();
+
+        return _buildLineChart(spots, labels);
+      },
+    );
+  }
+
+  Widget _buildLineChart(List<FlSpot> spots, List<String> labels) {
     return LineChart(
       LineChartData(
         gridData: FlGridData(
@@ -271,23 +324,10 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
               reservedSize: 30,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                const months = [
-                  'Jan',
-                  'Fév',
-                  'Mar',
-                  'Avr',
-                  'Mai',
-                  'Juin',
-                  'Jul',
-                  'Aoû',
-                  'Sep',
-                  'Oct',
-                  'Nov',
-                  'Déc',
-                ];
-                if (value.toInt() >= 1 && value.toInt() <= months.length) {
+                final index = value.toInt() - 1;
+                if (index >= 0 && index < labels.length) {
                   return Text(
-                    months[value.toInt() - 1],
+                    labels[index],
                     style: const TextStyle(fontSize: 10),
                   );
                 }
@@ -320,7 +360,7 @@ class _KPIEvolutionScreenState extends State<KPIEvolutionScreen> {
           border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
         ),
         minX: 1,
-        maxX: 12,
+        maxX: spots.length.toDouble(),
         minY: 0,
         maxY: 100,
         lineBarsData: [

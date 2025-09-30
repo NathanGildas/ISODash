@@ -300,4 +300,160 @@ class KPIProvider with ChangeNotifier {
   /// Récupère l'état du mode test
   bool get isTestMode => _calculatorService.isTestMode;
 
+  /// ============================================================================
+  /// DONNÉES HISTORIQUES POUR LES GRAPHIQUES
+  /// ============================================================================
+
+  /// Calcule les KPIs pour une plage de périodes (pour les graphiques de tendances)
+  Future<List<Map<String, dynamic>>> calculateKPITrend({
+    required KPIType kpiType,
+    int periodsCount = 12,
+  }) async {
+    final results = <Map<String, dynamic>>[];
+    final now = DateTime.now();
+
+    if (kpiType == KPIType.monthly) {
+      // Objectif 2: données mensuelles - only past and current month
+      for (int i = periodsCount - 1; i >= 0; i--) {
+        final date = DateTime(now.year, now.month - i, 1);
+
+        // Only include if date is in the past or current month
+        if (date.year < now.year ||
+            (date.year == now.year && date.month <= now.month)) {
+
+          final kpis = await _calculatorService.calculateAllKPIs(
+            forDate: date,
+            forceRefresh: false,
+          );
+
+          final monthlyKPI = kpis.firstWhere(
+            (kpi) => kpi.type == KPIType.monthly,
+            orElse: () => KPIIndicator(
+              id: 'obj2_${date.year}-${date.month}',
+              name: 'Objectif 2',
+              currentValue: 0,
+              targetValue: 80,
+              unit: '%',
+              period: date,
+              type: KPIType.monthly,
+            ),
+          );
+
+          // Only add to results if there's actual data (non-zero value)
+          if (monthlyKPI.currentValue > 0) {
+            results.add({
+              'period': date,
+              'value': monthlyKPI.currentValue,
+              'label': _getMonthLabel(date.month),
+            });
+          }
+        }
+      }
+    } else if (kpiType == KPIType.quarterly) {
+      // Objectif 1: données trimestrielles
+      final currentQuarter = ((now.month - 1) ~/ 3) + 1;
+
+      for (int i = 3; i >= 0; i--) {
+        int targetQuarter = currentQuarter - i;
+        int targetYear = now.year;
+
+        if (targetQuarter < 1) {
+          targetQuarter += 4;
+          targetYear--;
+        }
+
+        final date = DateTime(targetYear, (targetQuarter - 1) * 3 + 1, 1);
+
+        // Only include if quarter is in the past or current
+        final isPast = date.year < now.year ||
+                       (date.year == now.year && targetQuarter <= currentQuarter);
+
+        if (isPast) {
+          final kpis = await _calculatorService.calculateAllKPIs(
+            forDate: date,
+            forceRefresh: false,
+          );
+
+          final quarterlyKPI = kpis.firstWhere(
+            (kpi) => kpi.type == KPIType.quarterly,
+            orElse: () => KPIIndicator(
+              id: 'obj1_${targetYear}-Q$targetQuarter',
+              name: 'Objectif 1',
+              currentValue: 0,
+              targetValue: 70,
+              unit: '%',
+              period: date,
+              type: KPIType.quarterly,
+            ),
+          );
+
+          // Only add if there's actual data
+          if (quarterlyKPI.currentValue > 0) {
+            results.add({
+              'period': date,
+              'value': quarterlyKPI.currentValue,
+              'label': 'Q$targetQuarter ${targetYear.toString().substring(2)}',
+            });
+          }
+        }
+      }
+    } else if (kpiType == KPIType.quality) {
+      // Objectif 3: données trimestrielles (qualité)
+      final currentQuarter = ((now.month - 1) ~/ 3) + 1;
+
+      for (int i = 3; i >= 0; i--) {
+        int targetQuarter = currentQuarter - i;
+        int targetYear = now.year;
+
+        if (targetQuarter < 1) {
+          targetQuarter += 4;
+          targetYear--;
+        }
+
+        final date = DateTime(targetYear, (targetQuarter - 1) * 3 + 1, 1);
+
+        // Only include if quarter is in the past or current
+        final isPast = date.year < now.year ||
+                       (date.year == now.year && targetQuarter <= currentQuarter);
+
+        if (isPast) {
+          final kpis = await _calculatorService.calculateAllKPIs(
+            forDate: date,
+            forceRefresh: false,
+          );
+
+          final qualityKPI = kpis.firstWhere(
+            (kpi) => kpi.type == KPIType.quality,
+            orElse: () => KPIIndicator(
+              id: 'obj3_${targetYear}-Q$targetQuarter',
+              name: 'Objectif 3',
+              currentValue: 0,
+              targetValue: 80,
+              unit: '%',
+              period: date,
+              type: KPIType.quality,
+            ),
+          );
+
+          // Only add if there's actual data
+          if (qualityKPI.currentValue > 0) {
+            results.add({
+              'period': date,
+              'value': qualityKPI.currentValue,
+              'label': 'Q$targetQuarter ${targetYear.toString().substring(2)}',
+            });
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  String _getMonthLabel(int month) {
+    const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun',
+                     'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    return labels[month - 1];
+  }
+
 }
