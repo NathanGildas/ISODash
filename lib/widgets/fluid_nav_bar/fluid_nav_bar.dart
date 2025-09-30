@@ -3,14 +3,14 @@ import 'fluid_icon.dart';
 import 'fluid_button.dart';
 import 'curves.dart';
 
-typedef void FluidNavBarChangeCallback(int selectedIndex);
+typedef FluidNavBarChangeCallback = void Function(int selectedIndex);
 
 class FluidNavBar extends StatefulWidget {
   static const double nominalHeight = 56.0;
 
   final FluidNavBarChangeCallback? onChange;
 
-  FluidNavBar({required this.onChange});
+  const FluidNavBar({super.key, required this.onChange});
 
   @override
   State createState() => _FluidNavBarState();
@@ -61,7 +61,7 @@ class _FluidNavBarState extends State<FluidNavBar>
   Widget build(context) {
     final appSize = MediaQuery.of(context).size;
     final height = FluidNavBar.nominalHeight;
-    return Container(
+    return SizedBox(
       width: appSize.width,
       height: FluidNavBar.nominalHeight,
       child: Stack(

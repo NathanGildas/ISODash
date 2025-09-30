@@ -48,7 +48,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -78,7 +78,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -95,7 +95,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
           Container(
             width: 1,
             height: 40,
-            color: theme.colorScheme.outline.withOpacity(0.2),
+            color: theme.colorScheme.outline.withValues(alpha: 0.2),
           ),
           Expanded(
             child: _buildTypeButton(
@@ -120,7 +120,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
   ) {
     return Material(
       color: isSelected
-          ? theme.colorScheme.primary.withOpacity(0.1)
+          ? theme.colorScheme.primary.withValues(alpha: 0.1)
           : Colors.transparent,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
@@ -136,7 +136,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
                 size: 18,
                 color: isSelected
                     ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.6),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               const SizedBox(width: 8),
               Text(
@@ -144,7 +144,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: isSelected
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.8),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -163,7 +163,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -188,7 +188,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -375,7 +375,7 @@ class _PeriodPickerWidgetState extends State<PeriodPickerWidget> {
       color: isSelected
           ? theme.colorScheme.primary
           : isCurrent
-              ? theme.colorScheme.secondary.withOpacity(0.1)
+              ? theme.colorScheme.secondary.withValues(alpha: 0.1)
               : theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(8),
       elevation: isSelected ? 2 : 0,

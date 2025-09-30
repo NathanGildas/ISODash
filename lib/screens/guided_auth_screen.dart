@@ -4,12 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../providers/theme_provider.dart';
+import '../utils/logger.dart';
 
 class GuidedAuthScreen extends StatefulWidget {
   const GuidedAuthScreen({super.key});
 
   @override
-  _GuidedAuthScreenState createState() => _GuidedAuthScreenState();
+  State<GuidedAuthScreen> createState() => _GuidedAuthScreenState();
 }
 
 class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
@@ -22,10 +23,9 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
   String? _apiKey;
 
   // Paramètres proxy (utile pour le Web/CORS)
-  bool _useProxy = kIsWeb; // Par défaut activé sur Web
-  String? _proxyUrl = kIsWeb
-      ? 'http://localhost:8080'
-      : 'http://172.17.71.19:8080';
+  // SECURITY: Disabled by default, no hardcoded internal IPs
+  bool _useProxy = false;
+  String? _proxyUrl = kIsWeb ? 'http://localhost:8080' : null;
 
   //état de l'interface
   bool _isLoading = false;
@@ -40,7 +40,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
 
     return PopScope(
       canPop: false, // Empêche la sortie automatique
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBackButton(context);
       },
@@ -57,7 +57,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
                   Container(
                     padding: EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary.withOpacity(0.1),
+                      color: theme.colorScheme.secondary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -159,13 +159,15 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
                           decoration: BoxDecoration(
                             color: isActive
                                 ? theme.colorScheme.secondary
-                                : theme.colorScheme.secondary.withOpacity(0.2),
+                                : theme.colorScheme.secondary.withValues(
+                                    alpha: 0.2,
+                                  ),
                             borderRadius: BorderRadius.circular(2),
                             boxShadow: isCurrent
                                 ? [
                                     BoxShadow(
                                       color: theme.colorScheme.secondary
-                                          .withOpacity(0.4),
+                                          .withValues(alpha: 0.4),
                                       blurRadius: 4,
                                       offset: Offset(0, 1),
                                     ),
@@ -468,7 +470,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
       // URL directe vers la page des tokens
       final url = Uri.parse('$cleanUrl/my/access_token');
 
-      print('🔗 Trying to open: $url');
+      Logger.info('🔗 Trying to open: $url', tag: 'UI');
 
       // Essayer plusieurs méthodes de lancement
       bool launched = false;
@@ -478,10 +480,10 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
           launched = true;
-          print('✅ URL launched with externalApplication');
+          Logger.info('URL launched with externalApplication', tag: 'UI');
         }
       } catch (e) {
-        print('❌ Failed with externalApplication: $e');
+        Logger.error('Failed with externalApplication: $e', tag: 'UI');
       }
 
       if (!launched) {
@@ -489,9 +491,9 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
           // Méthode 2: Mode plateforme par défaut
           await launchUrl(url, mode: LaunchMode.platformDefault);
           launched = true;
-          print('✅ URL launched with platformDefault');
+          Logger.info('URL launched with platformDefault', tag: 'UI');
         } catch (e) {
-          print('❌ Failed with platformDefault: $e');
+          Logger.error('Failed with platformDefault: $e', tag: 'UI');
         }
       }
 
@@ -500,20 +502,20 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
           // Méthode 3: Mode ancien (deprecated mais parfois plus compatible)
           await launchUrl(url);
           launched = true;
-          print('✅ URL launched with default mode');
+          Logger.info('URL launched with default mode', tag: 'UI');
         } catch (e) {
-          print('❌ Failed with default mode: $e');
+          Logger.error('Failed with default mode: $e', tag: 'UI');
         }
       }
 
       if (!launched) {
-        print('❌ All launch methods failed for URL: $url');
+        Logger.error('All launch methods failed for URL: $url', tag: 'UI');
         _showErrorSnackBar(
           'Aucune méthode ne peut ouvrir le lien. Vérifiez qu\'un navigateur est installé sur votre téléphone.',
         );
       }
     } catch (e) {
-      print('❌ Exception launching URL: $e');
+      Logger.error('Exception launching URL: $e', tag: 'UI');
       _showErrorSnackBar('Erreur: $e');
     }
   }
@@ -804,19 +806,19 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
       );
 
       // Tests étendus
-      print('🧪 Test 1: Connexion basique...');
+      Logger.info('Test 1: Connexion basique...', tag: 'UI');
       final isValid = await _apiService.testConnection();
 
       if (isValid) {
-        print('✅ Test 1 réussi !');
+        Logger.info('Test 1 réussi !', tag: 'UI');
 
-        print('🧪 Test 2: Récupération utilisateur...');
+        Logger.info('Test 2: Récupération utilisateur...', tag: 'UI');
         final user = await _apiService.getCurrentUser();
-        print('👤 Utilisateur: ${user?['name']}');
+        Logger.info('👤 Utilisateur: ${user?['name']}', tag: 'UI');
 
-        print('🧪 Test 3: Récupération projets...');
+        Logger.info('Test 3: Récupération projets...', tag: 'UI');
         final projects = await _apiService.getProjects();
-        print('📋 ${projects.length} projets trouvés');
+        Logger.info('${projects.length} projets trouvés', tag: 'UI');
 
         setState(() {
           _isLoading = false;
@@ -830,7 +832,7 @@ class _GuidedAuthScreenState extends State<GuidedAuthScreen> {
         });
       }
     } catch (e) {
-      print('❌ Erreur test: $e');
+      Logger.error('Erreur test: $e', tag: 'UI');
       setState(() {
         _isLoading = false;
         _errorMessage = 'Erreur de connexion: ${e.toString()}';

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
+import '../utils/logger.dart';
 
 class DataDiagnosticWidget extends StatefulWidget {
   const DataDiagnosticWidget({super.key});
 
   @override
-  _DataDiagnosticWidgetState createState() => _DataDiagnosticWidgetState();
+  State<DataDiagnosticWidget> createState() => _DataDiagnosticWidgetState();
 }
 
 class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
@@ -270,8 +270,7 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
                           ],
                         ),
                       );
-                    })
-                    .toList(),
+                    }),
 
                 SizedBox(height: 16),
                 Text(
@@ -302,7 +301,7 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),
@@ -423,7 +422,10 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
     });
 
     try {
-      print('🔍 Début du diagnostic pour projet $_selectedProjectId');
+      Logger.info(
+        'Début du diagnostic pour projet $_selectedProjectId',
+        tag: 'Widget',
+      );
 
       // Récupère les work packages du projet
       final workPackages = await _apiService.getWorkPackages(
@@ -434,7 +436,10 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
         throw Exception('Aucun work package trouvé pour ce projet');
       }
 
-      print('📦 ${workPackages.length} work packages récupérés');
+      Logger.info(
+        '${workPackages.length} work packages récupérés',
+        tag: 'Widget',
+      );
 
       // Analyse la structure des données
       final analysis = _analyzeWorkPackages(workPackages);
@@ -444,9 +449,9 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
         _isLoading = false;
       });
 
-      print('✅ Diagnostic terminé');
+      Logger.info('Diagnostic terminé', tag: 'Widget');
     } catch (e) {
-      print('❌ Erreur diagnostic: $e');
+      Logger.error('Erreur diagnostic: $e', tag: 'Widget');
       setState(() {
         _isLoading = false;
         _error = e.toString();
@@ -457,7 +462,10 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
   Map<String, dynamic> _analyzeWorkPackages(
     List<Map<String, dynamic>> workPackages,
   ) {
-    print('📊 Analyse de ${workPackages.length} work packages...');
+    Logger.info(
+      'Analyse de ${workPackages.length} work packages...',
+      tag: 'Widget',
+    );
 
     // Compteurs pour le résumé
     int tasksWithPercentage = 0;
@@ -536,13 +544,17 @@ class _DataDiagnosticWidgetState extends State<DataDiagnosticWidget> {
       'rawSample': workPackages.take(3).toList(), // 3 premiers pour inspection
     };
 
-    print('📈 Analyse terminée:');
-    print(
+    Logger.info('📈 Analyse terminée:', tag: 'Widget');
+    Logger.info(
       '  - ${tasksWithPercentage} tâches avec pourcentage sur ${workPackages.length}',
+      tag: 'Widget',
     );
-    print('  - ${leafTasks} tâches potentiellement "feuilles"');
-    print('  - ${types.length} types différents');
-    print('  - ${statuses.length} statuts différents');
+    Logger.info(
+      '- ${leafTasks} tâches potentiellement "feuilles"',
+      tag: 'Widget',
+    );
+    Logger.info('- ${types.length} types différents', tag: 'Widget');
+    Logger.info('- ${statuses.length} statuts différents', tag: 'Widget');
 
     return result;
   }

@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../models/kpi_indicator.dart';
+import '../utils/logger.dart';
 
 /// Service de calcul des KPI ISO selon les spécifications métier précises
 class KPICalculatorService {
@@ -11,13 +13,13 @@ class KPICalculatorService {
   static const String _historicalDataKey = 'kpi_historical_data';
 
   // Cache pour éviter les appels API répétés
-  Map<String, dynamic> _cache = {};
+  final Map<String, dynamic> _cache = {};
   Map<String, double> _monthlyKPIHistory = {};
   Set<int> _excludedProjectIds = {};
 
   // Mode de test - inclut les projets/versions/tâches fermés
-  bool _testMode =
-      true; // 🧪 Mode test activé par défaut pour voir plus de données
+  // SECURITY: Default to false for production safety
+  bool _testMode = false;
 
   /// ============================================================================
   /// POINT D'ENTRÉE PRINCIPAL
@@ -28,7 +30,7 @@ class KPICalculatorService {
     required DateTime forDate,
     bool forceRefresh = false,
   }) async {
-    print('🧮 Calcul KPI pour ${_formatDate(forDate)}');
+    Logger.info('Calcul KPI pour ${_formatDate(forDate)}', tag: 'KPI');
 
     try {
       await _apiService.init();
@@ -60,10 +62,10 @@ class KPICalculatorService {
       final qualityKPI = await _calculateObjective3Quality(forDate);
       if (qualityKPI != null) results.add(qualityKPI);
 
-      print('✅ ${results.length} KPI calculés avec succès');
+      Logger.success('${results.length} KPI calculés avec succès', tag: 'KPI');
       return results;
     } catch (e) {
-      print('❌ Erreur calcul KPI: $e');
+      Logger.error('Erreur calcul KPI', error: e, tag: 'KPI');
       return [];
     }
   }
@@ -76,7 +78,7 @@ class KPICalculatorService {
   Future<KPIIndicator?> _calculateObjective2Monthly(DateTime month) async {
     try {
       final monthKey = _formatMonth(month);
-      print('📊 Calcul Objectif 2 pour $monthKey');
+      Logger.info('Calcul Objectif 2 pour $monthKey', tag: 'KPI');
 
       // Récupère tous les projets actifs
       final allProjects = await _getActiveProjects();
@@ -85,12 +87,13 @@ class KPICalculatorService {
           .toList();
 
       if (includedProjects.isEmpty) {
-        print('❌ Aucun projet inclus pour $monthKey');
+        Logger.error(' Aucun projet inclus pour $monthKey', tag: 'KPI');
         return null;
       }
 
-      print(
+      Logger.info(
         '📋 ${includedProjects.length} projets inclus (${_excludedProjectIds.length} exclus)',
+        tag: 'KPI',
       );
 
       double totalProgress = 0;
@@ -109,7 +112,10 @@ class KPICalculatorService {
           );
 
           if (monthSprint == null) {
-            print('  ⚠️ $projectName: Aucun sprint pour $monthKey');
+            Logger.info(
+              '$projectName: Aucun sprint pour $monthKey',
+              tag: 'KPI',
+            );
             continue;
           }
 
@@ -120,7 +126,10 @@ class KPICalculatorService {
           );
 
           if (sprintProgress == null) {
-            print('  ⚠️ $projectName: Impossible de calculer la progression');
+            Logger.info(
+              '$projectName: Impossible de calculer la progression',
+              tag: 'KPI',
+            );
             continue;
           }
 
@@ -128,29 +137,31 @@ class KPICalculatorService {
           totalProgress += sprintProgress;
           validProjects++;
 
-          print(
+          Logger.success(
             '  ✅ $projectName: ${sprintProgress.toStringAsFixed(1)}% (sprint: ${monthSprint['name']})',
+            tag: 'KPI',
           );
         } catch (e) {
-          print('  ❌ $projectName: Erreur $e');
+          Logger.error('   $projectName: Erreur $e', tag: 'KPI');
           continue;
         }
       }
 
       if (validProjects == 0) {
-        print('❌ Aucun projet valide pour $monthKey');
+        Logger.error(' Aucun projet valide pour $monthKey', tag: 'KPI');
         return null;
       }
 
       final averageProgress = totalProgress / validProjects;
 
-      print('📊 Résultats par projet:');
+      Logger.info('Résultats par projet:', tag: 'KPI');
       projectResults.forEach((name, progress) {
-        print('  - $name: ${progress.toStringAsFixed(1)}%');
+        Logger.info('- $name: ${progress.toStringAsFixed(1)}%', tag: 'KPI');
       });
 
-      print(
+      Logger.info(
         '✅ Objectif 2: ${averageProgress.toStringAsFixed(1)}% (moyenne de $validProjects projets)',
+        tag: 'KPI',
       );
 
       return KPIIndicator(
@@ -163,7 +174,7 @@ class KPICalculatorService {
         type: KPIType.monthly,
       );
     } catch (e) {
-      print('❌ Erreur Objectif 2: $e');
+      Logger.error(' Erreur Objectif 2: $e', tag: 'KPI');
       return null;
     }
   }
@@ -213,8 +224,9 @@ class KPICalculatorService {
         // Si on n'a pas de dates, on essaie d'autres critères en mode test
         if (startDate == null || endDate == null) {
           if (_testMode) {
-            print(
+            Logger.info(
               '    📦 ${version['name']}: Version sans dates - incluse en mode test',
+              tag: 'KPI',
             );
             // En mode test, on peut inclure cette version avec un score de 1 jour
             if (maxOverlapDays == 0) {
@@ -246,8 +258,9 @@ class KPICalculatorService {
             overlapStart.isAtSameMomentAs(overlapEnd)) {
           final overlapDays = overlapEnd.difference(overlapStart).inDays + 1;
 
-          print(
+          Logger.info(
             '    📦 ${version['name']}: ${versionStart.day}/${versionStart.month} → ${versionEnd.day}/${versionEnd.month} ($overlapDays jours dans $month)',
+            tag: 'KPI',
           );
 
           if (overlapDays > maxOverlapDays ||
@@ -261,15 +274,19 @@ class KPICalculatorService {
       }
 
       if (bestVersion != null) {
-        print(
+        Logger.info(
           '    🎯 Sprint sélectionné: ${bestVersion['name']} ($maxOverlapDays jours)',
+          tag: 'KPI',
         );
       }
 
       _cache[cacheKey] = bestVersion;
       return bestVersion;
     } catch (e) {
-      print('    ❌ Erreur recherche versions projet $projectId: $e');
+      Logger.error(
+        '     Erreur recherche versions projet $projectId: $e',
+        tag: 'KPI',
+      );
       return null;
     }
   }
@@ -312,13 +329,14 @@ class KPICalculatorService {
 
       final averageProgress = totalPercentage / validTasks;
 
-      print(
+      Logger.info(
         '      🌿 ${validTasks} tâches feuilles, progression moyenne: ${averageProgress.toStringAsFixed(1)}%',
+        tag: 'KPI',
       );
 
       return averageProgress;
     } catch (e) {
-      print('      ❌ Erreur calcul progression sprint: $e');
+      Logger.error('       Erreur calcul progression sprint: $e', tag: 'KPI');
       return null;
     }
   }
@@ -332,7 +350,7 @@ class KPICalculatorService {
     try {
       final quarter = ((date.month - 1) ~/ 3) + 1;
       final quarterKey = '${date.year}-Q$quarter';
-      print('📊 Calcul Objectif 1 pour $quarterKey');
+      Logger.info('Calcul Objectif 1 pour $quarterKey', tag: 'KPI');
 
       // Calcule les 3 mois du trimestre
       final quarterMonths = <DateTime>[];
@@ -356,8 +374,9 @@ class KPICalculatorService {
         if (_monthlyKPIHistory.containsKey(monthKey)) {
           final value = _monthlyKPIHistory[monthKey]!;
           monthlyValues.add(value);
-          print(
+          Logger.info(
             '  📅 ${_getMonthName(monthDate)} ${monthDate.year}: ${value.toStringAsFixed(1)}% (historique)',
+            tag: 'KPI',
           );
         }
         // Calcule si c'est un mois passé ou actuel
@@ -365,26 +384,30 @@ class KPICalculatorService {
           final monthlyKPI = await _calculateObjective2Monthly(monthDate);
           if (monthlyKPI != null) {
             monthlyValues.add(monthlyKPI.currentValue);
-            print(
+            Logger.info(
               '  📅 ${_getMonthName(monthDate)} ${monthDate.year}: ${monthlyKPI.currentValue.toStringAsFixed(1)}% (calculé)',
+              tag: 'KPI',
             );
           } else {
-            print(
+            Logger.info(
               '  ⚠️ ${_getMonthName(monthDate)} ${monthDate.year}: Pas de données',
+              tag: 'KPI',
             );
           }
         }
         // Mois futur - on ne peut pas calculer
         else {
-          print(
+          Logger.info(
             '  ⏳ ${_getMonthName(monthDate)} ${monthDate.year}: Mois futur',
+            tag: 'KPI',
           );
         }
       }
 
       if (monthlyValues.length < 2) {
-        print(
+        Logger.info(
           '⚠️ Pas assez de données pour $quarterKey (${monthlyValues.length}/3 mois)',
+          tag: 'KPI',
         );
         return null;
       }
@@ -392,8 +415,9 @@ class KPICalculatorService {
       final average =
           monthlyValues.reduce((a, b) => a + b) / monthlyValues.length;
 
-      print(
+      Logger.info(
         '✅ Objectif 1: ${average.toStringAsFixed(1)}% (moyenne de ${monthlyValues.length} mois)',
+        tag: 'KPI',
       );
 
       return KPIIndicator(
@@ -406,7 +430,7 @@ class KPICalculatorService {
         type: KPIType.quarterly,
       );
     } catch (e) {
-      print('❌ Erreur Objectif 1: $e');
+      Logger.error(' Erreur Objectif 1: $e', tag: 'KPI');
       return null;
     }
   }
@@ -420,7 +444,7 @@ class KPICalculatorService {
     try {
       final quarter = ((date.month - 1) ~/ 3) + 1;
       final quarterKey = '${date.year}-Q$quarter';
-      print('📊 Calcul Objectif 3 pour $quarterKey');
+      Logger.info('Calcul Objectif 3 pour $quarterKey', tag: 'KPI');
 
       // Calcule les 3 mois du trimestre
       final quarterMonths = <DateTime>[];
@@ -448,7 +472,10 @@ class KPICalculatorService {
 
       // Pour chaque mois du trimestre
       for (final month in quarterMonths) {
-        print('  📅 Analyse ${_getMonthName(month)} ${month.year}');
+        Logger.info(
+          '📅 Analyse ${_getMonthName(month)} ${month.year}',
+          tag: 'KPI',
+        );
 
         // Pour chaque projet inclus
         for (final project in includedProjects) {
@@ -483,23 +510,24 @@ class KPICalculatorService {
               }
             }
 
-            print('    📁 $projectName: ${leafTasks.length} tâches');
+            Logger.info('$projectName: ${leafTasks.length} tâches', tag: 'KPI');
           } catch (e) {
-            print('    ❌ $projectName: $e');
+            Logger.error('     $projectName: $e', tag: 'KPI');
             continue;
           }
         }
       }
 
       if (totalTasks == 0) {
-        print('❌ Aucune tâche trouvée pour $quarterKey');
+        Logger.error(' Aucune tâche trouvée pour $quarterKey', tag: 'KPI');
         return null;
       }
 
       final completionRate = (completedTasks / totalTasks) * 100;
 
-      print(
+      Logger.info(
         '✅ Objectif 3: ${completionRate.toStringAsFixed(1)}% ($completedTasks/$totalTasks tâches à 100%)',
+        tag: 'KPI',
       );
 
       return KPIIndicator(
@@ -512,7 +540,7 @@ class KPICalculatorService {
         type: KPIType.quality,
       );
     } catch (e) {
-      print('❌ Erreur Objectif 3: $e');
+      Logger.error(' Erreur Objectif 3: $e', tag: 'KPI');
       return null;
     }
   }
@@ -538,14 +566,15 @@ class KPICalculatorService {
               return project['active'] == true; // Mode prod: seulement actifs
             }).toList();
 
-      print(
+      Logger.info(
         '📋 Mode ${_testMode ? "TEST" : "PROD"}: ${filteredProjects.length} projets (${projects.length} total)',
+        tag: 'KPI',
       );
 
       _cache[cacheKey] = filteredProjects;
       return filteredProjects;
     } catch (e) {
-      print('❌ Erreur récupération projets: $e');
+      Logger.error(' Erreur récupération projets: $e', tag: 'KPI');
       return [];
     }
   }
@@ -562,9 +591,22 @@ class KPICalculatorService {
     }
 
     try {
-      final versionFilter =
-          '[{"version":{"operator":"=","values":["$sprintId"]}}]';
-      final encodedFilter = Uri.encodeComponent(versionFilter);
+      // SECURITY: Validate input to prevent injection
+      if (sprintId <= 0) {
+        throw ArgumentError('sprintId doit être un entier positif');
+      }
+
+      // Use proper JSON encoding instead of string interpolation
+      final filterObject = [
+        {
+          "version": {
+            "operator": "=",
+            "values": ["$sprintId"],
+          },
+        },
+      ];
+      final filtersJson = jsonEncode(filterObject);
+      final encodedFilter = Uri.encodeComponent(filtersJson);
       final response = await _apiService.get(
         '/projects/$projectId/work_packages?filters=$encodedFilter',
       );
@@ -580,7 +622,10 @@ class KPICalculatorService {
       _cache[cacheKey] = workPackages;
       return workPackages;
     } catch (e) {
-      print('❌ Erreur récupération work packages sprint $sprintId: $e');
+      Logger.error(
+        ' Erreur récupération work packages sprint $sprintId: $e',
+        tag: 'KPI',
+      );
       return [];
     }
   }
@@ -645,10 +690,13 @@ class KPICalculatorService {
       if (exclusionStr != null) {
         final exclusionList = List<int>.from(jsonDecode(exclusionStr));
         _excludedProjectIds = Set<int>.from(exclusionList);
-        print('📋 ${_excludedProjectIds.length} projets exclus chargés');
+        Logger.info(
+          '${_excludedProjectIds.length} projets exclus chargés',
+          tag: 'KPI',
+        );
       }
     } catch (e) {
-      print('⚠️ Erreur chargement exclusions: $e');
+      Logger.error('Erreur chargement exclusions: $e', tag: 'KPI');
       _excludedProjectIds = {};
     }
   }
@@ -661,9 +709,9 @@ class KPICalculatorService {
         _exclusionKey,
         jsonEncode(_excludedProjectIds.toList()),
       );
-      print('💾 Exclusions sauvegardées');
+      Logger.info('Exclusions sauvegardées', tag: 'KPI');
     } catch (e) {
-      print('⚠️ Erreur sauvegarde exclusions: $e');
+      Logger.error('Erreur sauvegarde exclusions: $e', tag: 'KPI');
     }
   }
 
@@ -693,12 +741,13 @@ class KPICalculatorService {
       if (historyStr != null) {
         final data = Map<String, dynamic>.from(jsonDecode(historyStr));
         _monthlyKPIHistory = Map<String, double>.from(data);
-        print(
+        Logger.info(
           '📦 Historique mensuel chargé: ${_monthlyKPIHistory.length} entrées',
+          tag: 'KPI',
         );
       }
     } catch (e) {
-      print('⚠️ Erreur chargement historique: $e');
+      Logger.error('Erreur chargement historique: $e', tag: 'KPI');
       _monthlyKPIHistory = {};
     }
   }
@@ -712,9 +761,12 @@ class KPICalculatorService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_historicalDataKey, jsonEncode(_monthlyKPIHistory));
 
-      print('💾 KPI mensuel sauvé: $monthKey = ${value.toStringAsFixed(1)}%');
+      Logger.info(
+        'KPI mensuel sauvé: $monthKey = ${value.toStringAsFixed(1)}%',
+        tag: 'KPI',
+      );
     } catch (e) {
-      print('⚠️ Erreur sauvegarde KPI: $e');
+      Logger.error('Erreur sauvegarde KPI: $e', tag: 'KPI');
     }
   }
 
@@ -728,14 +780,27 @@ class KPICalculatorService {
     await prefs.remove(_historicalDataKey);
     await prefs.remove(_exclusionKey);
 
-    print('🗑️ Toutes les données effacées');
+    Logger.info('Toutes les données effacées', tag: 'KPI');
   }
 
-  /// Active ou désactive le mode test
+  /// Active ou désactive le mode test (debug only)
   void setTestMode(bool enabled) {
-    _testMode = enabled;
-    _cache.clear(); // Vide le cache pour refléter les changements
-    print('🧪 Mode test ${enabled ? "ACTIVÉ" : "DÉSACTIVÉ"}');
+    // SECURITY: Only allow test mode in debug builds
+    if (enabled && kDebugMode) {
+      _testMode = true;
+      _cache.clear();
+      Logger.warn('Test mode ENABLED (debug only)', tag: 'KPI');
+    } else if (enabled && !kDebugMode) {
+      Logger.warn(
+        'Test mode cannot be enabled in release builds',
+        tag: 'Security',
+      );
+      _testMode = false;
+    } else {
+      _testMode = false;
+      _cache.clear();
+      Logger.info('Test mode DISABLED', tag: 'KPI');
+    }
   }
 
   /// Récupère l'état du mode test

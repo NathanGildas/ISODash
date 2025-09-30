@@ -26,8 +26,8 @@ class KPIParallaxCard extends StatelessWidget {
         : (kpi.status == KPIStatus.warning ? Colors.orange : Colors.red);
 
     final bgColor = theme.brightness == Brightness.dark
-        ? primaryColor.withOpacity(0.15)
-        : primaryColor.withOpacity(0.1);
+        ? primaryColor.withValues(alpha: 0.15)
+        : primaryColor.withValues(alpha: 0.1);
 
     // Parallax offset calculation
     final parallaxOffset = normalizedOffset * 50;
@@ -38,7 +38,7 @@ class KPIParallaxCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: Card(
         elevation: 8,
-        shadowColor: primaryColor.withOpacity(0.3),
+        shadowColor: primaryColor.withValues(alpha: 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -51,7 +51,7 @@ class KPIParallaxCard extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   bgColor,
-                  bgColor.withOpacity(0.5),
+                  bgColor.withValues(alpha: 0.5),
                 ],
               ),
             ),
@@ -66,7 +66,7 @@ class KPIParallaxCard extends StatelessWidget {
                     height: 150,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: primaryColor.withOpacity(0.1),
+                      color: primaryColor.withValues(alpha: 0.1),
                     ),
                   ),
                 ),
@@ -78,7 +78,7 @@ class KPIParallaxCard extends StatelessWidget {
                     height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: primaryColor.withOpacity(0.05),
+                      color: primaryColor.withValues(alpha: 0.05),
                     ),
                   ),
                 ),
@@ -99,17 +99,17 @@ class KPIParallaxCard extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: primaryColor.withOpacity(0.2),
+                              color: primaryColor.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: primaryColor.withOpacity(0.3),
+                                color: primaryColor.withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),
                             child: Text(
                               _getKPITypeLabel(kpi.type),
                               style: TextStyle(
-                                color: primaryColor.withOpacity(0.9),
+                                color: primaryColor.withValues(alpha: 0.9),
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -148,7 +148,7 @@ class KPIParallaxCard extends StatelessWidget {
                               Text(
                                 'Valeur',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                 ),
                               ),
                               Text(
@@ -167,14 +167,14 @@ class KPIParallaxCard extends StatelessWidget {
                               Text(
                                 'Objectif',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                 ),
                               ),
                               Text(
                                 '${kpi.targetValue.toStringAsFixed(0)}%',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -189,7 +189,7 @@ class KPIParallaxCard extends StatelessWidget {
                         height: 6,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(3),
-                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                         ),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
@@ -203,7 +203,7 @@ class KPIParallaxCard extends StatelessWidget {
                                     gradient: LinearGradient(
                                       colors: [
                                         primaryColor,
-                                        primaryColor.withOpacity(0.7),
+                                        primaryColor.withValues(alpha: 0.7),
                                       ],
                                     ),
                                   ),

@@ -1,11 +1,15 @@
 import 'dart:convert';
+import '../utils/logger.dart';
 import 'package:http/http.dart' as http;
 
 class OpenProjectExplorer {
-  final String baseUrl = 'https://forge2.ebindoo.com/api/v3';
+  final String baseUrl;
   final String apiKey;
 
-  OpenProjectExplorer({required this.apiKey});
+  OpenProjectExplorer({
+    required this.baseUrl,
+    required this.apiKey,
+  });
 
   Map<String, String> get headers => {
     'Authorization': 'Basic ${base64Encode(utf8.encode('apikey:$apiKey'))}',
@@ -14,7 +18,7 @@ class OpenProjectExplorer {
 
   /// Explore toutes les API nécessaires pour les calculs ISO
   Future<Map<String, dynamic>> exploreForISOCalculations() async {
-    print('🔍 Exploration des API OpenProject pour calculs ISO...');
+    Logger.info('Exploration des API OpenProject pour calculs ISO...', tag: 'Service');
 
     final results = <String, dynamic>{};
 
@@ -40,14 +44,14 @@ class OpenProjectExplorer {
       return results;
 
     } catch (e) {
-      print('❌ Erreur exploration: $e');
+      Logger.error('Erreur exploration: $e', tag: 'Service');
       return {'error': e.toString()};
     }
   }
 
   /// Explore les projets
   Future<Map<String, dynamic>> _exploreProjects() async {
-    print('📁 Exploration des projets...');
+    Logger.info('Exploration des projets...', tag: 'Service');
 
     final response = await http.get(
       Uri.parse('$baseUrl/projects'),
@@ -56,11 +60,11 @@ class OpenProjectExplorer {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print('✅ ${data['_embedded']['elements'].length} projets trouvés');
+      Logger.info('✅ ${data['_embedded']['elements'].length} projets trouvés', tag: 'Service');
 
       // Affiche les infos clés de chaque projet
       for (final project in data['_embedded']['elements']) {
-        print('  - ID: ${project['id']}, Nom: "${project['name']}", Statut: ${project['status']}');
+        Logger.info('  - ID: ${project['id']}, Nom: "${project['name']}", Statut: ${project['status']}', tag: 'Service');
       }
 
       return {
@@ -75,7 +79,7 @@ class OpenProjectExplorer {
 
   /// Explore les versions/sprints d'un projet
   Future<Map<String, dynamic>> _exploreVersions(int projectId) async {
-    print('📋 Exploration des versions/sprints du projet $projectId...');
+    Logger.info('Exploration des versions/sprints du projet $projectId...', tag: 'Service');
 
     final response = await http.get(
       Uri.parse('$baseUrl/projects/$projectId/versions'),
@@ -85,13 +89,13 @@ class OpenProjectExplorer {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final versions = data['_embedded']['elements'];
-      print('✅ ${versions.length} versions trouvées');
+      Logger.info('${versions.length} versions trouvées', tag: 'Service');
 
       // Affiche les infos clés de chaque version
       for (final version in versions.take(3)) { // Limite à 3 pour la lisibilité
-        print('  - ID: ${version['id']}, Nom: "${version['name']}"');
-        print('    Start: ${version['startDate']}, End: ${version['endDate']}');
-        print('    Status: ${version['status']}, Description: "${version['description'] ?? 'N/A'}"');
+        Logger.info('  - ID: ${version['id']}, Nom: "${version['name']}"', tag: 'Service');
+        Logger.info('    Start: ${version['startDate']}, End: ${version['endDate']}', tag: 'Service');
+        Logger.info('    Status: ${version['status']}, Description: "${version['description'] ?? 'N/A'}"', tag: 'Service');
       }
 
       return {
@@ -105,7 +109,7 @@ class OpenProjectExplorer {
 
   /// Explore les work packages d'un projet
   Future<Map<String, dynamic>> _exploreWorkPackages(int projectId) async {
-    print('📝 Exploration des work packages du projet $projectId...');
+    Logger.info('📝 Exploration des work packages du projet $projectId...', tag: 'Service');
 
     // Utilise les filtres OpenProject pour récupérer les WP d'un projet
     final filters = [
@@ -124,19 +128,19 @@ class OpenProjectExplorer {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final workPackages = data['_embedded']['elements'];
-      print('✅ ${data['total']} work packages (affichage des 10 premiers)');
+      Logger.info('✅ ${data['total']} work packages (affichage des 10 premiers)', tag: 'Service');
 
       // Affiche les infos clés de chaque work package
       for (final wp in workPackages.take(5)) {
-        print('  - ID: ${wp['id']}, Sujet: "${wp['subject']}"');
-        print('    Type: ${wp['_links']['type']['title']}');
-        print('    Status: ${wp['_links']['status']['title']}');
-        print('    Assigné: ${wp['_links']['assignee']?['title'] ?? 'Non assigné'}');
-        print('    Dates: ${wp['startDate']} → ${wp['dueDate']}');
+        Logger.info('  - ID: ${wp['id']}, Sujet: "${wp['subject']}"', tag: 'Service');
+        Logger.info('    Type: ${wp['_links']['type']['title']}', tag: 'Service');
+        Logger.info('    Status: ${wp['_links']['status']['title']}', tag: 'Service');
+        Logger.info('    Assigné: ${wp['_links']['assignee']?['title'] ?? 'Non assigné'}', tag: 'Service');
+        Logger.info('    Dates: ${wp['startDate']} → ${wp['dueDate']}', tag: 'Service');
 
         // Recherche des custom fields liés aux tests
         if (wp['customField1'] != null) {
-          print('    Custom Fields: ${wp['customField1']}');
+          Logger.info('    Custom Fields: ${wp['customField1']}', tag: 'Service');
         }
       }
 
@@ -152,7 +156,7 @@ class OpenProjectExplorer {
 
   /// Explore les statuts disponibles
   Future<Map<String, dynamic>> _exploreStatuses() async {
-    print('🏷️ Exploration des statuts...');
+    Logger.info('🏷️ Exploration des statuts...', tag: 'Service');
 
     final response = await http.get(
       Uri.parse('$baseUrl/statuses'),
@@ -162,7 +166,7 @@ class OpenProjectExplorer {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final statuses = data['_embedded']['elements'];
-      print('✅ ${statuses.length} statuts trouvés');
+      Logger.info('${statuses.length} statuts trouvés', tag: 'Service');
 
       // Catégorise les statuts pour les calculs
       final completedStatuses = <String>[];
@@ -170,7 +174,7 @@ class OpenProjectExplorer {
 
       for (final status in statuses) {
         final name = status['name'].toString().toLowerCase();
-        print('  - ID: ${status['id']}, Nom: "${status['name']}", Fermé: ${status['isClosed']}');
+        Logger.info('  - ID: ${status['id']}, Nom: "${status['name']}", Fermé: ${status['isClosed']}', tag: 'Service');
 
         // Identifie les statuts "complétés"
         if (status['isClosed'] == true ||
@@ -201,7 +205,7 @@ class OpenProjectExplorer {
 
   /// Explore les types de work packages
   Future<Map<String, dynamic>> _exploreTypes() async {
-    print('📂 Exploration des types...');
+    Logger.info('📂 Exploration des types...', tag: 'Service');
 
     final response = await http.get(
       Uri.parse('$baseUrl/types'),
@@ -211,10 +215,10 @@ class OpenProjectExplorer {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final types = data['_embedded']['elements'];
-      print('✅ ${types.length} types trouvés');
+      Logger.info('${types.length} types trouvés', tag: 'Service');
 
       for (final type in types) {
-        print('  - ID: ${type['id']}, Nom: "${type['name']}", Couleur: ${type['color']}');
+        Logger.info('  - ID: ${type['id']}, Nom: "${type['name']}", Couleur: ${type['color']}', tag: 'Service');
       }
 
       return {
@@ -227,7 +231,7 @@ class OpenProjectExplorer {
 
   /// Explore les custom fields
   Future<Map<String, dynamic>> _exploreCustomFields() async {
-    print('🔧 Exploration des custom fields...');
+    Logger.info('🔧 Exploration des custom fields...', tag: 'Service');
 
     final response = await http.get(
       Uri.parse('$baseUrl/custom_fields'),
@@ -237,14 +241,14 @@ class OpenProjectExplorer {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final customFields = data['_embedded']['elements'];
-      print('✅ ${customFields.length} custom fields trouvés');
+      Logger.info('${customFields.length} custom fields trouvés', tag: 'Service');
 
       // Recherche des champs liés aux tests/qualité
       final qualityFields = <Map<String, dynamic>>[];
 
       for (final field in customFields) {
         final name = field['name'].toString().toLowerCase();
-        print('  - ID: ${field['id']}, Nom: "${field['name']}", Type: ${field['fieldFormat']}');
+        Logger.info('  - ID: ${field['id']}, Nom: "${field['name']}", Type: ${field['fieldFormat']}', tag: 'Service');
 
         if (name.contains('test') ||
             name.contains('quality') ||
@@ -265,7 +269,7 @@ class OpenProjectExplorer {
 
   /// Analyse les données pour les calculs ISO
   Map<String, dynamic> _analyzeForISOCalculations(Map<String, dynamic> results) {
-    print('🧮 Analyse des données pour calculs ISO...');
+    Logger.info('Analyse des données pour calculs ISO...', tag: 'Service');
 
     return {
       'recommendations': {
@@ -324,10 +328,10 @@ class OpenProjectExplorer {
   Future<void> quickTest() async {
     try {
       final projects = await _exploreProjects();
-      print('\n📊 Test rapide réussi !');
-      print('Projets trouvés: ${projects['count']}');
+      Logger.info('\n Test rapide réussi !', tag: 'Service');
+      Logger.info('Projets trouvés: ${projects['count']}', tag: 'Service');
     } catch (e) {
-      print('❌ Test rapide échoué: $e');
+      Logger.info('Test rapide échoué: $e', tag: 'Service');
     }
   }
 }

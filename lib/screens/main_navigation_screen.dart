@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/theme_provider.dart';
-import '../widgets/theme_transition_container.dart';
 import '../widgets/fluid_nav_bar/fluid_nav_bar.dart';
 import 'kpi_dashboard_screen.dart';
 import 'kpi_evolution_screen.dart';

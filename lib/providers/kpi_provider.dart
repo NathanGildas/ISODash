@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/kpi_calculator_service.dart'; // Service refactorisé avec logique métier précise
+import '../services/kpi_calculator_service.dart';
 import '../models/kpi_indicator.dart';
 import '../models/sprint_metrics.dart';
+import '../utils/logger.dart';
 
 class KPIProvider with ChangeNotifier {
   final KPICalculatorService _calculatorService = KPICalculatorService(); // Service refactorisé
@@ -46,11 +47,11 @@ class KPIProvider with ChangeNotifier {
     _clearError();
 
     try {
-      print('🔄 Chargement KPI pour ${_selectedPeriod.toString()}');
+      Logger.info('Chargement KPI pour ${_selectedPeriod.toString()}', tag: 'KPI');
 
       // Vérification préalable des credentials
       if (!await _calculatorService.hasValidCredentials()) {
-        print('⚠️ Pas de credentials configurés, arrêt du chargement KPI');
+        Logger.warn('Pas de credentials configurés, arrêt du chargement KPI', tag: 'KPI');
         _setLoading(false);
         _setError('Configuration requise: Veuillez configurer vos identifiants API via l\'écran de connexion');
         return;
@@ -64,14 +65,10 @@ class KPIProvider with ChangeNotifier {
 
       _kpis = kpis;
 
-      // Récupère les sprints nécessitant des causes
-      // _sprintsNeedingCauses = _calculatorService.getSprintsNeedingCauseDocumentation(); // Commenté
-
-      print('✅ ${_kpis.length} KPI chargés');
-      // print('✅ ${_kpis.length} KPI chargés, ${_sprintsNeedingCauses.length} sprints nécessitent des causes');
+      Logger.success('${_kpis.length} KPI chargés', tag: 'KPI');
       _setLoading(false);
     } catch (e) {
-      print('❌ Erreur loadKPIs: $e');
+      Logger.error('Erreur loadKPIs', error: e, tag: 'KPI');
       _setError('Impossible de charger les KPI: $e');
       _setLoading(false);
     }
@@ -95,7 +92,7 @@ class KPIProvider with ChangeNotifier {
     String? solution,
   }) async {
     // Fonctionnalité temporairement désactivée
-    print('⚠️ Gestion des causes temporairement désactivée');
+    Logger.warn('Gestion des causes temporairement désactivée', tag: 'KPI');
     /*
     try {
       final cause = PerformanceCause(
@@ -118,9 +115,9 @@ class KPIProvider with ChangeNotifier {
       _sprintsNeedingCauses = _calculatorService.getSprintsNeedingCauseDocumentation();
 
       notifyListeners();
-      print('✅ Cause ajoutée au sprint $sprintId');
+      Logger.info('Cause ajoutée au sprint $sprintId', tag: 'KPI');
     } catch (e) {
-      print('❌ Erreur ajout cause: $e');
+      Logger.error('Erreur ajout cause: $e', tag: 'KPI');
       _setError('Impossible d\'ajouter la cause: $e');
     }
     */
@@ -229,10 +226,9 @@ class KPIProvider with ChangeNotifier {
   Future<void> clearAllData() async {
     await _calculatorService.clearAllData();
     _kpis.clear();
-    // _sprintsNeedingCauses.clear(); // Commenté
     _clearError();
     notifyListeners();
-    print('🗑️ Toutes les données effacées');
+    Logger.info('Toutes les données effacées', tag: 'KPI');
   }
 
   /// Informations de debug
@@ -256,12 +252,12 @@ class KPIProvider with ChangeNotifier {
   Future<void> excludeProject(int projectId) async {
     try {
       await _calculatorService.excludeProject(projectId);
-      print('✅ Projet $projectId exclu des calculs');
+      Logger.success('Projet $projectId exclu des calculs', tag: 'KPI');
 
       // Recharge les KPI pour refléter l'exclusion
       await loadKPIs(forceRefresh: true);
     } catch (e) {
-      print('❌ Erreur exclusion projet $projectId: $e');
+      Logger.error('Erreur exclusion projet $projectId', error: e, tag: 'KPI');
       _setError('Impossible d\'exclure le projet: $e');
     }
   }
@@ -270,12 +266,12 @@ class KPIProvider with ChangeNotifier {
   Future<void> includeProject(int projectId) async {
     try {
       await _calculatorService.includeProject(projectId);
-      print('✅ Projet $projectId inclus dans les calculs');
+      Logger.success('Projet $projectId inclus dans les calculs', tag: 'KPI');
 
       // Recharge les KPI pour refléter l'inclusion
       await loadKPIs(forceRefresh: true);
     } catch (e) {
-      print('❌ Erreur inclusion projet $projectId: $e');
+      Logger.error('Erreur inclusion projet $projectId', error: e, tag: 'KPI');
       _setError('Impossible d\'inclure le projet: $e');
     }
   }

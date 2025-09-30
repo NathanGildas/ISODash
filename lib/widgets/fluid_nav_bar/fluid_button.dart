@@ -2,22 +2,23 @@ import 'package:flutter/material.dart' hide ElasticOutCurve;
 import 'fluid_icon.dart';
 import 'curves.dart';
 
-typedef void FluidNavBarButtonPressedCallback();
+typedef FluidNavBarButtonPressedCallback = void Function();
 
 class FluidNavBarButton extends StatefulWidget {
-  static const nominalExtent = const Size(64, 64);
+  static const nominalExtent = Size(64, 64);
 
   final FluidFillIconData _iconData;
   final bool _selected;
   final FluidNavBarButtonPressedCallback _onPressed;
 
-  FluidNavBarButton(
+  const FluidNavBarButton(
     FluidFillIconData iconData,
     bool selected,
-    FluidNavBarButtonPressedCallback onPressed,
-  ) : _iconData = iconData,
-      _selected = selected,
-      _onPressed = onPressed;
+    FluidNavBarButtonPressedCallback onPressed, {
+    super.key,
+  }) : _iconData = iconData,
+       _selected = selected,
+       _onPressed = onPressed;
 
   @override
   State createState() {
@@ -31,9 +32,9 @@ class _FluidNavBarButtonState extends State<FluidNavBarButton>
   static const double _defaultOffset = 0;
   static const double _radius = 25;
 
-  FluidFillIconData _iconData;
+  final FluidFillIconData _iconData;
   bool _selected;
-  FluidNavBarButtonPressedCallback _onPressed;
+  final FluidNavBarButtonPressedCallback _onPressed;
 
   late AnimationController _animationController;
   late Animation<double> _animation;

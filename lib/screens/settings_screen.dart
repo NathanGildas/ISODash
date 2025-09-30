@@ -73,42 +73,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
             Consumer<ThemeProvider>(
               builder: (context, themeProvider, child) {
-                return Column(
-                  children: [
-                    RadioListTile<ThemeMode>(
-                      title: const Text('Thème clair'),
-                      subtitle: const Text('Interface claire'),
-                      value: ThemeMode.light,
-                      groupValue: themeProvider.themeMode,
-                      onChanged: (ThemeMode? value) {
-                        if (value != null) {
-                          themeProvider.setThemeMode(value);
-                        }
-                      },
-                    ),
-                    RadioListTile<ThemeMode>(
-                      title: const Text('Thème sombre'),
-                      subtitle: const Text('Interface sombre'),
-                      value: ThemeMode.dark,
-                      groupValue: themeProvider.themeMode,
-                      onChanged: (ThemeMode? value) {
-                        if (value != null) {
-                          themeProvider.setThemeMode(value);
-                        }
-                      },
-                    ),
-                    RadioListTile<ThemeMode>(
-                      title: const Text('Thème système'),
-                      subtitle: const Text('Suit les paramètres du système'),
-                      value: ThemeMode.system,
-                      groupValue: themeProvider.themeMode,
-                      onChanged: (ThemeMode? value) {
-                        if (value != null) {
-                          themeProvider.setThemeMode(value);
-                        }
-                      },
-                    ),
-                  ],
+                return RadioGroup<ThemeMode>(
+                  groupValue: themeProvider.themeMode,
+                  onChanged: (ThemeMode? value) {
+                    if (value != null) {
+                      themeProvider.setThemeMode(value);
+                    }
+                  },
+                  child: Column(
+                    children: [
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Thème clair'),
+                        subtitle: const Text('Interface claire'),
+                        value: ThemeMode.light,
+                      ),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Thème sombre'),
+                        subtitle: const Text('Interface sombre'),
+                        value: ThemeMode.dark,
+                      ),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Thème système'),
+                        subtitle: const Text('Suit les paramètres du système'),
+                        value: ThemeMode.system,
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -241,10 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.api,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.api, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 12),
                 Text(
                   'APIs & Intégrations',
@@ -258,7 +245,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.search),
               title: const Text('Explorer les APIs OpenProject'),
-              subtitle: const Text('Tester la connectivité et analyser les endpoints'),
+              subtitle: const Text(
+                'Tester la connectivité et analyser les endpoints',
+              ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () => _navigateToAPIExplorer(),
             ),
@@ -404,10 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await prefs.clear();
 
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/',
-          (route) => false,
-        );
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
     } catch (e) {
       if (mounted) {
@@ -422,11 +408,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _navigateToAPIExplorer() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const APIExplorerScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const APIExplorerScreen()));
   }
 
   void _showIntegrationsDialog() {

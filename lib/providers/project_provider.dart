@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/project.dart';
+import '../utils/logger.dart';
 
 class ProjectProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -22,15 +23,14 @@ class ProjectProvider with ChangeNotifier {
     _clearError();
 
     try {
-      // s'assurer que les credentials sont chargés avant de faire des requêtes API nécéssitant des credentials
       await _apiService.init();
       final projectsData = await _apiService.getProjects();
       _projects = projectsData.map((json) => Project.fromJson(json)).toList();
 
-      print('📋 ${_projects.length} projets chargés');
+      Logger.info('${_projects.length} projets chargés', tag: 'Projects');
       _setLoading(false);
     } catch (e) {
-      print('❌ Erreur loadProjects: $e');
+      Logger.error('Erreur loadProjects', error: e, tag: 'Projects');
       _setError('Impossible de charger les projets: $e');
       _setLoading(false);
     }

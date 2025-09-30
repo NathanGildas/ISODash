@@ -37,6 +37,7 @@ dependencies:
   shared_preferences: ^2.3.2
   url_launcher: ^6.2.1  # Pour ouvrir des liens externes
   flutter_launcher_icons: ^0.14.4
+  flutter_secure_storage: ^9.2.2  # Secure storage for API keys and credentials
   
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

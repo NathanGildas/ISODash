@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/openproject_explorer.dart';
+import '../services/api_service.dart';
 import 'dart:convert';
 
 class APIExplorerScreen extends StatefulWidget {
   const APIExplorerScreen({super.key});
 
   @override
-  _APIExplorerScreenState createState() => _APIExplorerScreenState();
+  State<APIExplorerScreen> createState() => _APIExplorerScreenState();
 }
 
 class _APIExplorerScreenState extends State<APIExplorerScreen> {
@@ -432,11 +433,23 @@ class _APIExplorerScreenState extends State<APIExplorerScreen> {
     });
 
     try {
-      _explorer = OpenProjectExplorer(apiKey: _apiKeyController.text.trim());
+      // SECURITY: Use ApiService to get baseUrl instead of hardcoding
+      final apiService = ApiService();
+      await apiService.init();
+
+      final baseUrl = apiService.instanceUrl.isEmpty
+          ? 'https://your-instance.openproject.com'
+          : apiService.instanceUrl;
+
+      _explorer = OpenProjectExplorer(
+        baseUrl: '$baseUrl/api/v3',
+        apiKey: _apiKeyController.text.trim(),
+      );
       await _explorer!.quickTest();
 
       setState(() => _isLoading = false);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
